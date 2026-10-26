@@ -16,25 +16,38 @@
 <body>
   <header id="site-header"></header>
 
-  <main class="container py-4">
-    <!-- ===== 여기부터 이 페이지 내용을 작성하세요 ===== -->
+  <main class="container survey-wrap">
+    <!-- 상단 제목 -->
+    <section class="survey-head text-center">
+      <h1 class="survey-title">러닝 코스 찾기</h1>
+      <p class="survey-sub">몇 가지 질문에 답하면 나만의 러닝 레포트를 만들어 드려요.</p>
+    </section>
 
-    <div class="todo-box">
-      <h2>TODO · 설문 입력 화면 (기능 ①) · 담당: ______</h2>
-      <p class="text-muted small mb-2">완성되면 이 상자는 지워 주세요.</p>
-      <ul class="mb-0">
-          <li>한 화면에 질문 하나씩 보여 주기 (이전 / 다음 버튼)</li>
-          <li>진행 상태 표시: '2 / 3' + 진행바 (Bootstrap Progress)</li>
-          <li>Q1 여행지: REGIONS(js/common.js) 목록으로 선택지 만들기</li>
-          <li>Q2 거리: 3km / 5km / 10km / 직접 입력</li>
-          <li>Q3 날짜: 날짜 선택(input type=date), 오늘 이전 날짜는 막기</li>
-          <li>회의에서 확정된 추가 질문 (난이도 / 풍경 / 시간대 / 러닝 후 활동)</li>
-          <li>답을 안 고르고 '다음'을 누르면 안내 메시지</li>
-          <li>마지막에 '분석 중' 화면을 1~2초 보여 준 뒤 report.html?region=..&km=..&date=.. 로 이동 (buildQuery 사용)</li>
-      </ul>
-    </div>
+    <!-- 진행 상태: '1 / 7' + 진행바 -->
+    <section class="survey-progress" id="progressArea">
+      <span class="progress-count"><b id="currentNum">1</b> / <span id="totalNum">7</span></span>
+      <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </section>
 
-    <!-- ===== 여기까지 ===== -->
+    <!-- 질문 카드: survey.js가 질문마다 내용을 바꿔 끼웁니다 -->
+    <section class="question-card card-soft" id="questionCard">
+      <div id="questionBody"></div>
+
+      <div class="question-footer">
+        <button type="button" class="btn btn-outline-prev" id="prevBtn">‹ 이전</button>
+        <button type="button" class="btn btn-navy btn-next d-none" id="nextBtn">다음 ›</button>
+      </div>
+    </section>
+
+    <!-- 분석 중 화면 (마지막 질문 뒤에 잠깐 표시) -->
+    <section class="analyzing card-soft d-none" id="analyzing">
+      <div class="runner" aria-hidden="true">🏃</div>
+      <h2 class="analyzing-title">맞춤 레포트를 만드는 중이에요</h2>
+      <p class="analyzing-step" id="analyzingStep">코스를 고르는 중…</p>
+      <div class="progress-track mt-3"><div class="progress-fill analyzing-fill"></div></div>
+    </section>
   </main>
 
   <footer id="site-footer"></footer>
