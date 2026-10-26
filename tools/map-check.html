@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>지도 점검 · 경로 찍기 도구</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet" />
+  <link href="../css/common.css" rel="stylesheet" />
+  <style>
+    #map { width: 100%; height: 480px; border-radius: var(--radius); }
+    .pin { width: 28px; height: 28px; border-radius: 50%; color: #fff; font-weight: 700;
+           display: flex; align-items: center; justify-content: center; font-size: 13px;
+           border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+    .pin-start { background: var(--color-green); }
+    .pin-end { background: var(--color-red); }
+    .pin-spot { background: var(--color-blue); width: 24px; height: 24px; font-size: 12px; }
+    #output { font-family: ui-monospace, monospace; font-size: 12px; height: 160px; }
+    #status.error { color: var(--color-red); font-weight: 600; }
+  </style>
+</head>
+<body>
+  <!--
+    개발용 도구입니다 (실제 서비스 화면 아님).
+    1) 카카오 키/도메인 설정이 제대로 됐는지 확인
+    2) data/courses.json 코스들이 지도에 어떻게 그려지는지 확인
+    3) '경로 찍기' 모드로 지도를 클릭해 새 코스 좌표(JSON)를 만들기
+    Live Server로 열어야 동작합니다: http://127.0.0.1:5500/tools/map-check.html
+  -->
+  <main class="container py-4">
+    <h1 class="h4 fw-bold mb-1">지도 점검 · 경로 찍기 도구</h1>
+    <p id="status" class="text-muted small mb-3">카카오맵을 불러오는 중…</p>
+
+    <div class="row g-3">
+      <div class="col-lg-8">
+        <div id="map" class="card-soft"></div>
+      </div>
+      <div class="col-lg-4">
+        <div class="card-soft p-3 mb-3">
+          <label class="form-label fw-semibold small">① 등록된 코스 보기</label>
+          <select id="courseSelect" class="form-select form-select-sm"></select>
+          <p id="courseInfo" class="small text-muted mt-2 mb-0"></p>
+        </div>
+
+        <div class="card-soft p-3">
+          <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" id="pickMode" />
+            <label class="form-check-label fw-semibold small" for="pickMode">② 경로 찍기 모드</label>
+          </div>
+          <p class="small text-muted mb-2">켜고 지도를 클릭하면 점이 추가됩니다. 길을 따라 촘촘히 찍을수록 정확해요.</p>
+          <p class="small mb-2">찍은 점 <b id="pointCount">0</b>개 · 길이 <b id="pathLength">0.00</b> km</p>
+          <div class="d-flex gap-2 mb-2">
+            <button id="undoBtn" class="btn btn-sm btn-outline-secondary">마지막 점 취소</button>
+            <button id="roundBtn" class="btn btn-sm btn-outline-secondary">왕복으로 만들기</button>
+            <button id="clearBtn" class="btn btn-sm btn-outline-danger">모두 지우기</button>
+          </div>
+          <textarea id="output" class="form-control" readonly placeholder="여기에 path 좌표가 나옵니다"></textarea>
+          <button id="copyBtn" class="btn btn-sm btn-navy w-100 mt-2">좌표 복사 (courses.json의 path에 붙여넣기)</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/common.js"></script>
+  <script>
+    const statusEl = document.getElementById('status');
+    let map, courses = [], spots = [], drawn = [];
+    let picked = [], pickedLine = null, pickedDots = [];
+
+    function setStatus(msg, isError = false) {
+      statusEl.textContent = msg;
+      statusEl.className = 'small mb-3 ' + (isError ? 'error' : 'text-muted');
+    }
+
+    function pin(position, label, cls) {
+      return new kakao.maps.CustomOverlay({
+        position, content: `<div class="pin ${cls}">${label}</div>`, yAnchor: 0.5,
+      });
+    }
+
+    // ---- 등록된 코스 그리기 ----
+    function showCourse(course) {
+      drawn.forEach((o) => o.setMap(null));
+      drawn = [];
+      const path = course.path.map(([lat, lng]) => new kakao.maps.LatLng(lat, lng));
+
+      const line = new kakao.maps.Polyline({
+        path, strokeWeight: 6, strokeColor: '#f07c2a', strokeOpacity: 0.9, strokeStyle: 'solid',
+      });
+      line.setMap(map);
+      drawn.push(line);
+
+      const s = pin(path[0], 'S', 'pin-start');
+      const e = pin(path[path.length - 1], 'E', 'pin-end');
+      s.setMap(map); e.setMap(map);
+      drawn.push(s, e);
+
+      spots.filter((sp) => sp.courseId === course.id).forEach((sp, i) => {
+        const o = pin(new kakao.maps.LatLng(sp.lat, sp.lng), i + 1, 'pin-spot');
+        o.setMap(map);
+        drawn.push(o);
+      });
+
+      const bounds = new kakao.maps.LatLngBounds();
+      path.forEach((p) => bounds.extend(p));
+      map.setBounds(bounds);
+
+      const realKm = (line.getLength() / 1000).toFixed(2);
+      document.getElementById('courseInfo').innerHTML =
+        `${course.regionName} · ${course.name}<br>json의 distanceKm: ${course.distanceKm} km / 지도상 실제 길이: ${realKm} km`;
+    }
+
+    // ---- 경로 찍기 ----
+    function redrawPicked() {
+      if (pickedLine) pickedLine.setMap(null);
+      pickedDots.forEach((d) => d.setMap(null));
+      pickedDots = [];
+      const path = picked.map(([lat, lng]) => new kakao.maps.LatLng(lat, lng));
+      pickedLine = new kakao.maps.Polyline({
+        path, strokeWeight: 5, strokeColor: '#2f6db5', strokeOpacity: 0.9, strokeStyle: 'shortdash',
+      });
+      pickedLine.setMap(map);
+      path.forEach((p) => {
+        const dot = new kakao.maps.Circle({
+          center: p, radius: 4, strokeWeight: 1, strokeColor: '#2f6db5', fillColor: '#fff', fillOpacity: 1,
+        });
+        dot.setMap(map);
+        pickedDots.push(dot);
+      });
+      const km = picked.length > 1 ? pickedLine.getLength() / 1000 : 0;
+      document.getElementById('pointCount').textContent = picked.length;
+      document.getElementById('pathLength').textContent = km.toFixed(2);
+      document.getElementById('output').value = picked.length ? JSON.stringify(picked) : '';
+    }
+
+    async function init() {
+      try {
+        if (CONFIG.KAKAO_JS_KEY.startsWith('여기에')) {
+          throw new Error('js/config.js에 카카오 JavaScript 키를 아직 넣지 않았어요.');
+        }
+        await loadKakaoMap();
+      } catch (err) {
+        setStatus('❌ ' + err.message, true);
+        return;
+      }
+
+      const first = REGIONS[0].center;
+      map = new kakao.maps.Map(document.getElementById('map'), {
+        center: new kakao.maps.LatLng(first.lat, first.lng), level: 5,
+      });
+      map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
+      setStatus('✅ 카카오맵 연결 성공! 키와 도메인 설정이 정상입니다.');
+
+      try {
+        [courses, spots] = await Promise.all([loadJSON('../data/courses.json'), loadJSON('../data/spots.json')]);
+      } catch (err) {
+        setStatus('✅ 지도는 정상 · ❌ 데이터 불러오기 실패: Live Server로 열었는지 확인하세요.', true);
+        return;
+      }
+
+      const select = document.getElementById('courseSelect');
+      select.innerHTML = courses.map((c, i) => `<option value="${i}">${c.regionName} · ${c.name}</option>`).join('');
+      select.addEventListener('change', () => showCourse(courses[select.value]));
+      showCourse(courses[0]);
+
+      kakao.maps.event.addListener(map, 'click', (e) => {
+        if (!document.getElementById('pickMode').checked) return;
+        const ll = e.latLng;
+        picked.push([+ll.getLat().toFixed(6), +ll.getLng().toFixed(6)]);
+        redrawPicked();
+      });
+    }
+
+    document.getElementById('undoBtn').onclick = () => { picked.pop(); redrawPicked(); };
+    document.getElementById('clearBtn').onclick = () => { picked = []; redrawPicked(); };
+    document.getElementById('roundBtn').onclick = () => {
+      if (picked.length > 1) { picked = picked.concat(picked.slice(0, -1).reverse()); redrawPicked(); }
+    };
+    document.getElementById('copyBtn').onclick = async () => {
+      const text = document.getElementById('output').value;
+      if (!text) return;
+      try { await navigator.clipboard.writeText(text); setStatus('📋 좌표를 복사했어요.'); }
+      catch { document.getElementById('output').select(); }
+    };
+
+    init();
+  </script>
+</body>
+</html>

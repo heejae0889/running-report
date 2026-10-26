@@ -1,0 +1,34 @@
+[
+  {
+    "id": "e1",
+    "region": "busan",
+    "courseId": "busan-gwangalli",
+    "type": "축제",
+    "name": "광안리 가을 해변 축제 (예시)",
+    "startDate": "2026-11-14",
+    "endDate": "2026-11-14",
+    "time": "14:00~21:00",
+    "place": "광안리 해수욕장 일대",
+    "lat": 35.1532,
+    "lng": 129.1186,
+    "congestion": "높음",
+    "note": "코스 일부 구간이 혼잡할 수 있어요. 오전 러닝을 추천해요.",
+    "photo": ""
+  },
+  {
+    "id": "e2",
+    "region": "seoul",
+    "courseId": "seoul-yeouido",
+    "type": "마라톤",
+    "name": "한강 가을 마라톤 대회 (예시)",
+    "startDate": "2026-11-08",
+    "endDate": "2026-11-08",
+    "time": "08:00~12:00",
+    "place": "여의도 한강공원",
+    "lat": 37.5285,
+    "lng": 126.933,
+    "congestion": "높음",
+    "note": "대회 시간에는 일부 구간이 통제될 수 있어요.",
+    "photo": ""
+  }
+]

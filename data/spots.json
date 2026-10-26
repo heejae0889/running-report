@@ -1,0 +1,101 @@
+[
+  {
+    "id": "s1",
+    "courseId": "busan-gwangalli",
+    "type": "food",
+    "name": "해변 횟집 거리 (예시)",
+    "description": "코스 종료 지점에서 가까운 횟집 골목",
+    "lat": 35.156,
+    "lng": 129.133,
+    "walkMinFromEnd": 3,
+    "photo": ""
+  },
+  {
+    "id": "s2",
+    "courseId": "busan-gwangalli",
+    "type": "food",
+    "name": "바다 전망 카페 (예시)",
+    "description": "러닝 후 시원한 음료와 디저트",
+    "lat": 35.1535,
+    "lng": 129.1265,
+    "walkMinFromEnd": 7,
+    "photo": ""
+  },
+  {
+    "id": "s3",
+    "courseId": "busan-gwangalli",
+    "type": "tour",
+    "name": "광안대교 전망 포인트 (예시)",
+    "description": "야경 사진 찍기 좋은 곳",
+    "lat": 35.15,
+    "lng": 129.119,
+    "walkMinFromEnd": 12,
+    "photo": ""
+  },
+  {
+    "id": "s4",
+    "courseId": "busan-haeundae",
+    "type": "food",
+    "name": "국밥·분식 골목 (예시)",
+    "description": "아침 일찍 여는 가게가 많아요",
+    "lat": 35.161,
+    "lng": 129.162,
+    "walkMinFromEnd": 8,
+    "photo": ""
+  },
+  {
+    "id": "s5",
+    "courseId": "busan-haeundae",
+    "type": "tour",
+    "name": "동백섬 등대 (예시)",
+    "description": "바다 전망 산책로",
+    "lat": 35.1505,
+    "lng": 129.154,
+    "walkMinFromEnd": 4,
+    "photo": ""
+  },
+  {
+    "id": "s6",
+    "courseId": "seoul-yeouido",
+    "type": "food",
+    "name": "한강 편의점·푸드트럭 (예시)",
+    "description": "러닝 후 라면 한 그릇",
+    "lat": 37.5292,
+    "lng": 126.9335,
+    "walkMinFromEnd": 2,
+    "photo": ""
+  },
+  {
+    "id": "s7",
+    "courseId": "seoul-yeouido",
+    "type": "tour",
+    "name": "여의도 공원 (예시)",
+    "description": "도심 속 넓은 공원",
+    "lat": 37.526,
+    "lng": 126.922,
+    "walkMinFromEnd": 10,
+    "photo": ""
+  },
+  {
+    "id": "s8",
+    "courseId": "jeju-yongduam",
+    "type": "food",
+    "name": "해안가 고기국수집 (예시)",
+    "description": "제주식 고기국수",
+    "lat": 33.515,
+    "lng": 126.514,
+    "walkMinFromEnd": 4,
+    "photo": ""
+  },
+  {
+    "id": "s9",
+    "courseId": "jeju-yongduam",
+    "type": "tour",
+    "name": "용두암 (예시)",
+    "description": "용 머리 모양 바위",
+    "lat": 33.5166,
+    "lng": 126.5117,
+    "walkMinFromEnd": 1,
+    "photo": ""
+  }
+]
