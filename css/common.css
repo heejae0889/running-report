@@ -1,0 +1,122 @@
+/* =============================================
+   공통 스타일 — 모든 페이지가 이 파일을 불러옵니다.
+   색상/폰트를 바꿀 땐 팀에 먼저 공유하고 여기서만 바꿔 주세요.
+   페이지 전용 스타일은 css/페이지이름.css 에 작성합니다.
+   ============================================= */
+
+:root {
+  /* 설계서(시스템 설계 화면) 기준 색상 */
+  --color-navy: #22396b;        /* 헤더, 주요 버튼 */
+  --color-navy-dark: #172a52;
+  --color-orange: #f07c2a;      /* 강조, 러닝 코스 선, 진행바 */
+  --color-orange-soft: #fff3e8; /* 안내 박스 배경 */
+  --color-blue: #2f6db5;        /* 먹거리/관광 마커 */
+  --color-red: #d9534f;         /* 행사 마커 */
+  --color-green: #2e8b57;       /* 출발 지점 */
+  --color-bg: #f5f7fb;          /* 페이지 배경 */
+  --color-card: #ffffff;
+  --color-border: #e3e8f0;
+  --color-text: #1f2937;
+  --color-muted: #6b7280;
+
+  --radius: 14px;
+  --shadow: 0 2px 10px rgba(20, 40, 80, 0.06);
+
+  /* Bootstrap 기본 색을 우리 색으로 덮어쓰기 */
+  --bs-primary: var(--color-navy);
+  --bs-primary-rgb: 34, 57, 107;
+  --bs-body-font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--bs-body-font-family);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+main { flex: 1; }
+
+/* ---------- 공통 헤더 / 푸터 (js/common.js가 채워 넣음) ---------- */
+.site-header {
+  background: var(--color-navy);
+}
+.site-header .navbar-brand {
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.site-header .navbar-brand .brand-dot { color: var(--color-orange); }
+.site-header .nav-link { color: rgba(255, 255, 255, 0.75); }
+.site-header .nav-link:hover,
+.site-header .nav-link.active { color: #fff; }
+
+.site-footer {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  padding: 24px 0;
+  border-top: 1px solid var(--color-border);
+  margin-top: 48px;
+}
+
+/* ---------- 공통 컴포넌트 ---------- */
+.card-soft {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.btn-orange {
+  background: var(--color-orange);
+  border-color: var(--color-orange);
+  color: #fff;
+  font-weight: 600;
+}
+.btn-orange:hover { background: #dc6c1d; border-color: #dc6c1d; color: #fff; }
+
+.btn-navy {
+  background: var(--color-navy);
+  border-color: var(--color-navy);
+  color: #fff;
+}
+.btn-navy:hover { background: var(--color-navy-dark); color: #fff; }
+
+.section-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.notice-box {
+  background: var(--color-orange-soft);
+  border: 1px solid #f8d2b0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: #b4561a;
+  font-size: 0.9rem;
+}
+
+/* 사진이 아직 없을 때 쓰는 자리표시 박스 */
+.photo-placeholder {
+  background: linear-gradient(135deg, #f3a35f, var(--color-orange));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  aspect-ratio: 4 / 3;
+  font-size: 0.85rem;
+}
+
+/* 개발 중 TODO 안내 박스 — 페이지 완성 후 지워 주세요 */
+.todo-box {
+  border: 2px dashed var(--color-orange);
+  border-radius: var(--radius);
+  background: #fff;
+  padding: 20px 24px;
+}
+.todo-box h2 { font-size: 1rem; color: var(--color-orange); font-weight: 700; }
+.todo-box li { margin-bottom: 4px; }

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>나의 맞춤 러닝 레포트 · Go!투어런닝</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- 폰트: Pretendard -->
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet" />
+  <!-- 공통 스타일 → 페이지 스타일 순서 유지 -->
+  <link href="css/common.css" rel="stylesheet" />
+  <link href="css/report.css" rel="stylesheet" />
+</head>
+<body>
+  <header id="site-header"></header>
+
+  <main class="container py-4">
+    <!-- ===== 여기부터 이 페이지 내용을 작성하세요 ===== -->
+
+    <div class="todo-box">
+      <h2>TODO · 맞춤 레포트 (기능 ②④⑥) · 담당: ______</h2>
+      <p class="text-muted small mb-2">완성되면 이 상자는 지워 주세요.</p>
+      <ul class="mb-0">
+          <li>getParams()로 설문 결과 읽기 → 값이 없으면 설문으로 돌려보내기</li>
+          <li>loadJSON('data/courses.json') + pickCourse()로 코스 선정</li>
+          <li>상단 요약: 코스 이름 · 날짜 · 거리</li>
+          <li>지도: loadKakaoMap() → 코스 경로를 주황색 선(Polyline)으로, 출발(S)/도착(E) 마커 (tools/map-check.html 참고)</li>
+          <li>코스 정보: 총 거리, 예상 소요 시간, 시작·종료 지점</li>
+          <li>날씨: Open-Meteo API (키 없음). 예보가 없는 먼 날짜면 평년 정보로 대체</li>
+          <li>'러닝하기 좋은 날씨' 한 줄 요약</li>
+          <li>맛집·관광 / 행사 영역 (4번째 페이지 담당과 나눔 — 회의에서 확정)</li>
+          <li>이미지로 저장(html2canvas), 링크 복사(현재 주소 복사) + 공유 모달</li>
+      </ul>
+    </div>
+
+    <!-- ===== 여기까지 ===== -->
+  </main>
+
+  <footer id="site-footer"></footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/report.js"></script>
+</body>
+</html>
