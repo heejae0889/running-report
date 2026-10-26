@@ -1,1 +1,252 @@
 /* 러닝 코스 설문 페이지 전용 스타일 */
+
+.survey-wrap {
+  max-width: 640px;
+  padding-top: 36px;
+  padding-bottom: 24px;
+}
+
+/* ---------- 상단 제목 ---------- */
+.survey-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--color-navy);
+  letter-spacing: -0.03em;
+  margin-bottom: 6px;
+}
+.survey-sub {
+  color: var(--color-muted);
+  margin-bottom: 28px;
+}
+
+/* ---------- 진행 상태 ---------- */
+.survey-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.progress-count {
+  font-size: 0.95rem;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+.progress-count b { color: var(--color-orange); }
+.progress-track {
+  flex: 1;
+  height: 8px;
+  background: #e6eaf1;
+  border-radius: 99px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  width: 0;
+  background: var(--color-orange);
+  border-radius: 99px;
+  transition: width 0.35s ease;
+}
+
+/* ---------- 질문 카드 ---------- */
+.question-card {
+  padding: 28px 24px 20px;
+}
+.q-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-orange);
+  margin-bottom: 4px;
+}
+.q-text {
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+}
+.q-hint {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+}
+
+/* 질문이 바뀔 때 살짝 밀려 들어오는 효과 */
+.slide-in { animation: slideIn 0.3s ease; }
+.slide-in-back { animation: slideInBack 0.3s ease; }
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideInBack {
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ---------- 유형 1: 큰 그림 카드 (여행지) ---------- */
+.pick-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.pick-card {
+  background: #fff;
+  border: 2px solid var(--color-border);
+  border-radius: 16px;
+  padding: 18px 8px 14px;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.pick-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+.pick-card .pick-icon {
+  width: 84px;
+  height: 84px;
+  margin: 0 auto 10px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.6rem;
+}
+.pick-card .pick-name { font-weight: 700; font-size: 1.05rem; }
+.pick-card .pick-desc { color: var(--color-muted); font-size: 0.8rem; margin-top: 2px; }
+.pick-card.selected {
+  border-color: var(--color-orange);
+  background: var(--color-orange-soft);
+}
+
+/* ---------- 유형 2: 버튼 선택 (거리, 난이도, 시간대) ---------- */
+.choice-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.choice-btn {
+  background: #f6f7f9;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  padding: 16px 14px;
+  text-align: left;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.choice-btn:hover { background: #eef1f6; }
+.choice-btn .choice-sub { display: block; color: var(--color-muted); font-size: 0.8rem; margin-top: 2px; }
+.choice-btn.selected {
+  border-color: var(--color-orange);
+  background: var(--color-orange-soft);
+  font-weight: 700;
+}
+.custom-input {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.custom-input input { max-width: 140px; }
+
+/* ---------- 유형 3: A/B 척도 (동그라미 5개) ---------- */
+.scale-options {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+.scale-option {
+  background: #f6f7f9;
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+.scale-option b { margin-right: 6px; }
+.scale-option.side-a b { color: #3d8b6a; }
+.scale-option.side-b b { color: #8a5a2b; }
+
+.scale-dots {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+}
+.scale-dot {
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid #ccc;
+  cursor: pointer;
+  transition: transform 0.12s, background 0.12s;
+}
+.scale-dot:hover { transform: scale(1.08); }
+/* 양 끝이 크고 가운데로 갈수록 작게 */
+.scale-dot[data-v="-2"], .scale-dot[data-v="2"] { width: 58px; height: 58px; }
+.scale-dot[data-v="-1"], .scale-dot[data-v="1"] { width: 46px; height: 46px; }
+.scale-dot[data-v="0"] { width: 36px; height: 36px; }
+/* A쪽 초록, B쪽 갈색, 가운데 회색 */
+.scale-dot[data-v="-2"], .scale-dot[data-v="-1"] { border-color: #5fae8a; }
+.scale-dot[data-v="1"],  .scale-dot[data-v="2"]  { border-color: #8a5a2b; }
+.scale-dot.selected[data-v="-2"], .scale-dot.selected[data-v="-1"] { background: #5fae8a; }
+.scale-dot.selected[data-v="1"],  .scale-dot.selected[data-v="2"]  { background: #8a5a2b; }
+.scale-dot.selected[data-v="0"] { background: #bbb; }
+.scale-ends {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-top: 8px;
+  padding: 0 14px;
+}
+.scale-ends .end-a { color: #3d8b6a; }
+.scale-ends .end-b { color: #8a5a2b; }
+
+/* ---------- 유형 4: 날짜 ---------- */
+.date-input { max-width: 260px; font-size: 1.1rem; padding: 12px 14px; }
+.date-preview { margin-top: 10px; color: var(--color-navy); font-weight: 600; min-height: 1.5em; }
+
+.error-msg { color: var(--color-red); font-size: 0.9rem; margin-top: 10px; min-height: 1.3em; }
+
+/* ---------- 하단 버튼 ---------- */
+.question-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px dashed var(--color-border);
+  margin-top: 24px;
+  padding-top: 16px;
+}
+.btn-outline-prev {
+  border: 1.5px solid #b9c7bf;
+  color: #3d6b56;
+  border-radius: 99px;
+  padding: 8px 22px;
+  background: #fff;
+}
+.btn-outline-prev:hover { background: #f1f6f3; }
+.btn-next { border-radius: 99px; padding: 8px 26px; }
+
+/* ---------- 분석 중 ---------- */
+.analyzing {
+  text-align: center;
+  padding: 48px 24px;
+}
+.runner {
+  font-size: 3.2rem;
+  display: inline-block;
+  animation: run 0.6s ease-in-out infinite alternate;
+}
+@keyframes run {
+  from { transform: translateX(-18px) rotate(-4deg); }
+  to   { transform: translateX(18px) rotate(4deg); }
+}
+.analyzing-title { font-size: 1.3rem; font-weight: 700; margin-top: 12px; }
+.analyzing-step { color: var(--color-muted); margin: 0; min-height: 1.5em; }
+.analyzing-fill { animation: fillUp 2.4s linear forwards; }
+@keyframes fillUp { from { width: 0; } to { width: 100%; } }
+
+/* ---------- 모바일 ---------- */
+@media (max-width: 480px) {
+  .survey-title { font-size: 1.6rem; }
+  .question-card { padding: 22px 16px 16px; }
+  .pick-card .pick-icon { width: 64px; height: 64px; font-size: 2rem; }
+  .pick-card .pick-desc { display: none; }
+  .choice-list { grid-template-columns: 1fr; }
+  .scale-dot[data-v="-2"], .scale-dot[data-v="2"] { width: 48px; height: 48px; }
+  .scale-dot[data-v="-1"], .scale-dot[data-v="1"] { width: 38px; height: 38px; }
+  .scale-dot[data-v="0"] { width: 30px; height: 30px; }
+}
