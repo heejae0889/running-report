@@ -31,7 +31,7 @@
       <div class="hero-inner">
         <p class="hero-when" id="heroWhen"></p>
         <h1 class="hero-title" id="heroTitle"></h1>
-        <p class="hero-course" id="heroCourse"></p>
+        <p class="hero-course" id="heroCourse">코스를 만드는 중…</p>
 
         <dl class="stats">
           <div class="stat">
@@ -70,19 +70,27 @@
       <section class="block block--map">
         <div class="block-head">
           <h2>러닝 코스</h2>
-          <p class="block-note" id="courseNote">AI 맞춤 코스는 준비 중이에요. 지금은 예시 코스를 보여 드려요.</p>
+          <p class="block-note" id="courseNote">설문 답에 맞는 코스를 만들고 있어요.</p>
         </div>
         <div class="map-wrap">
           <div id="map" class="map" role="img" aria-label="러닝 코스 지도"></div>
+          <!-- 코스를 만드는 동안 보이는 안내 -->
+          <div class="map-status" id="mapStatus" role="status" aria-live="polite">
+            <span class="spinner" aria-hidden="true"></span>
+            <span id="mapStatusText">코스를 준비하고 있어요…</span>
+          </div>
           <ul class="map-legend" aria-label="지도 표시 안내">
             <li><i class="dot dot--start"></i>출발</li>
             <li><i class="dot dot--end"></i>도착</li>
+            <li><i class="dot dot--via"></i>들를 곳</li>
             <li><i class="dot dot--rest"></i>쉬어 갈 곳</li>
             <li><i class="dot dot--stay"></i>숙소</li>
             <li><i class="dot dot--event"></i>행사</li>
           </ul>
         </div>
         <dl class="course-facts" id="courseFacts"></dl>
+        <!-- AI 코스일 때: 코스 소개, 추천 이유, 달리기 팁 -->
+        <div class="course-story" id="courseStory"></div>
       </section>
 
       <!-- 3. 날씨 -->
@@ -124,7 +132,7 @@
       </section>
 
       <p class="report-credit">
-        지도·장소 정보: 카카오맵 · 날씨: Open-Meteo · 행사: 한국관광공사 · 사진: Unsplash<br />
+        코스 기획: Google Gemini · 경로: TMAP · 지도·장소 정보: 카카오맵 · 날씨: Open-Meteo · 행사: 한국관광공사 · 사진: Unsplash<br />
         예상 소요 시간과 칼로리는 목표 페이스와 몸무게로 계산한 추정치예요.
       </p>
     </div>
@@ -151,7 +159,10 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="js/config.js"></script>
+  <!-- 개인 키 파일 (GitHub에 안 올라감). 없으면 예시 코스를 보여 줍니다. -->
+  <script src="js/secrets.js"></script>
   <script src="js/common.js"></script>
+  <script src="js/course-ai.js"></script>
   <script src="js/report.js"></script>
 </body>
 </html>

@@ -197,9 +197,59 @@ body.report-page .site-footer { margin-top: 24px; }
 .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
 .dot--start { background: var(--color-green); }
 .dot--end   { background: var(--color-red); }
+.dot--via   { background: var(--color-orange); }
 .dot--rest  { background: var(--color-blue); }
 .dot--stay  { background: #7a4cc2; }
 .dot--event { background: #e0457b; }
+
+/* 코스를 만드는 동안 지도 위 안내 */
+.map-status {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border-radius: 14px;
+  background: rgba(238, 240, 243, 0.86);
+  font-weight: 700;
+  color: var(--color-navy);
+  text-align: center;
+  padding: 20px;
+}
+.map-status.is-done { display: none; }
+.spinner {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 3px solid rgba(240, 124, 42, 0.25);
+  border-top-color: var(--color-orange);
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } }
+
+/* 코스 소개 · 추천 이유 · 팁 */
+.course-story:empty { display: none; }
+.course-story {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 24px;
+  margin-top: 18px;
+}
+.course-story .story-summary {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.6;
+}
+.course-story h3 { font-size: 0.95rem; font-weight: 800; margin: 0 0 6px; }
+.course-story ul { margin: 0; padding-left: 1.1em; color: #374151; }
+.course-story li + li { margin-top: 4px; }
+@media (max-width: 760px) { .course-story { grid-template-columns: 1fr; } }
 
 /* 지도 위 표시 (카카오맵 CustomOverlay 안에 들어가는 요소) */
 .pin {
@@ -216,6 +266,7 @@ body.report-page .site-footer { margin-top: 24px; }
 .pin--start, .pin--end { width: 30px; height: 30px; font-size: 13px; }
 .pin--start { background: var(--color-green); }
 .pin--end   { background: var(--color-red); }
+.pin--via   { width: 22px; height: 22px; font-size: 11px; background: var(--color-orange); }
 .pin--rest  { width: 22px; height: 22px; font-size: 11px; background: var(--color-blue); }
 .pin--stay  { width: 22px; height: 22px; font-size: 11px; background: #7a4cc2; }
 .pin--event { width: 22px; height: 22px; font-size: 11px; background: #e0457b; }

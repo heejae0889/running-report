@@ -3,3 +3,6 @@ Thumbs.db
 .vscode/
 node_modules/
 *.log
+
+# 개인 키 파일 (GitHub에 올리지 않음)
+js/secrets.js

@@ -127,47 +127,125 @@ async function init() {
   $('report').classList.remove('d-none');
   $('actionBar').classList.remove('d-none');
 
-  // 1) 코스 정하기 (지금은 예시 코스 중에서 고름)
+  bindActions();
+  renderHeroBase();
+
+  // 1) 카카오 지도 SDK 먼저 (AI 코스의 장소 검색에도 필요)
+  let kakaoOk = true;
   try {
-    const courses = await loadJSON('data/courses.json');
-    state.course = pickCourse(courses, p);
+    await loadKakaoMap();
   } catch (e) {
     console.error(e);
+    kakaoOk = false;
   }
+
+  // 2) 코스 정하기: 공유 링크의 코스 → AI 코스 → 예시 코스 순서로 시도
+  state.course = await getCourse(p, kakaoOk);
   if (!state.course) {
-    $('courseNote').textContent = '코스 데이터를 불러오지 못했어요. Live Server로 열었는지 확인해 주세요.';
+    setMapStatus('코스 데이터를 불러오지 못했어요. Live Server로 열었는지 확인해 주세요.', true);
+    $('heroCourse').textContent = '코스를 불러오지 못했어요';
     return;
   }
   state.courseKm = state.course.distanceKm;
 
   renderHero();
   renderFacts();
+  renderStory();
 
-  // 2) 지도 · 날씨 · 행사는 서로 기다리지 않고 동시에
-  state.mapReady = initMap();
+  // 3) 지도 · 날씨 · 행사는 서로 기다리지 않고 동시에
+  state.mapReady = kakaoOk ? initMap() : Promise.reject(new Error('카카오 SDK 없음'));
   loadWeather();
   loadEvents();
   try {
     await state.mapReady;
+    setMapStatus('', false, true);
     loadRestSpots();
     loadStays();
   } catch (e) {
     console.error(e);
-    $('map').innerHTML = '<p class="empty-msg" style="padding:20px">지도를 불러오지 못했어요. 카카오 키와 도메인 등록을 확인해 주세요.</p>';
+    setMapStatus('지도를 불러오지 못했어요. 카카오 키와 도메인 등록을 확인해 주세요.', true);
     $('restList').innerHTML = '<li class="empty-msg">지도를 불러오지 못해 주변 장소를 찾지 못했어요.</li>';
     $('stayList').innerHTML = '<li class="empty-msg">지도를 불러오지 못해 숙소를 찾지 못했어요.</li>';
   }
+}
 
-  bindActions();
+// =============================================
+// 코스 정하기
+// =============================================
+// 지도 위 안내 문구 (done=true면 숨김)
+function setMapStatus(text, isError = false, done = false) {
+  const box = $('mapStatus');
+  box.classList.toggle('is-done', done);
+  $('mapStatusText').textContent = text;
+  box.querySelector('.spinner').style.display = isError ? 'none' : '';
+}
+
+async function getCourse(p, kakaoOk) {
+  // 예시 코스 (키가 없거나 AI가 실패했을 때)
+  const fallback = async (reason) => {
+    try {
+      const courses = await loadJSON('data/courses.json');
+      const c = pickCourse(courses, p);
+      if (!c) return null;
+      const same = c.start.lat === c.end.lat && c.start.lng === c.end.lng;
+      return { ...c, source: 'example', type: same ? '왕복' : '편도', note: reason };
+    } catch (e) {
+      console.error(e);
+      return null;
+    }
+  };
+
+  if (!kakaoOk) return fallback('지도를 불러오지 못해 예시 코스를 보여 드려요.');
+
+  // 공유 링크로 열었으면, 링크에 담긴 들를 곳으로 같은 코스를 다시 그리기 (제미나이 호출 없음)
+  const routeRaw = new URLSearchParams(location.search).get('route');
+  if (routeRaw && hasTmapKey()) {
+    try {
+      setMapStatus('공유받은 코스를 그리고 있어요…');
+      const c = await rebuildCourseFromRoute(JSON.parse(routeRaw), p.region);
+      return { ...c, note: '공유받은 코스예요. 경로선은 TMAP 보행자 길찾기로 실제 길을 따라 그렸어요.' };
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  if (!hasAiKeys()) {
+    return fallback('js/secrets.js에 제미나이·TMAP 키를 넣으면 AI 맞춤 코스를 만들어요. 지금은 예시 코스예요.');
+  }
+
+  try {
+    const c = await buildAiCourse(p, (text) => setMapStatus(text));
+    // 새로고침하거나 공유해도 같은 코스가 나오도록 주소에 저장
+    const url = new URL(location.href);
+    url.searchParams.set('route', courseToRouteParam(c));
+    history.replaceState(null, '', url);
+    return { ...c, note: '제미나이가 설문 답에 맞춰 짠 코스예요. 경로선은 TMAP 보행자 길찾기로 실제 길을 따라 그렸어요.' };
+  } catch (e) {
+    console.error(e);
+    return fallback(`AI 코스를 만들지 못해 예시 코스를 보여 드려요. (${e.message})`);
+  }
+}
+
+// 코스 소개 · 추천 이유 · 팁
+function renderStory() {
+  const c = state.course;
+  const list = (title, items) => (items && items.length
+    ? `<div><h3>${title}</h3><ul>${items.map((t) => `<li>${esc(t)}</li>`).join('')}</ul></div>`
+    : '');
+  const html = [
+    c.description ? `<p class="story-summary">${esc(c.description)}</p>` : '',
+    list('이 코스를 고른 이유', c.reasons),
+    list('달릴 때 팁', c.tips),
+  ].join('');
+  $('courseStory').innerHTML = html;
 }
 
 // =============================================
 // 1. 상단 요약
 // =============================================
-function renderHero() {
+function renderHeroBase() {
   const p = state.params;
   const region = getRegion(p.region);
-  const course = state.course;
 
   // 사진
   const pid = REGION_PHOTOS[p.region];
@@ -179,9 +257,12 @@ function renderHero() {
   const ddayText = dday === 0 ? '오늘' : dday > 0 ? `${dday}일 남음` : '지난 날짜';
   $('heroWhen').textContent = [formatDateKo(p.date), p.time, ddayText].filter(Boolean).join(' · ');
   $('heroTitle').textContent = `${region.name} 러닝 레포트`;
-  $('heroCourse').textContent = course.name;
   document.title = `${region.name} 러닝 레포트 · 트립 런닝`;
+}
 
+function renderHero() {
+  $('heroCourse').textContent = state.course.name;
+  $('courseNote').textContent = state.course.note || '';
   renderStats();
 }
 
@@ -215,11 +296,11 @@ function renderStats() {
 function renderFacts() {
   const p = state.params;
   const c = state.course;
-  const roundTrip = c.start.lat === c.end.lat && c.start.lng === c.end.lng;
+  const typeText = { '왕복': '반환점을 찍고 돌아오는 왕복', '순환': '출발점으로 돌아오는 순환', '편도': '한 방향으로 가는 편도' }[c.type] || '-';
   const facts = [
     ['출발', c.start.name],
     ['도착', c.end.name],
-    ['코스 형태', roundTrip ? '같은 곳으로 돌아오는 코스' : '한 방향 코스'],
+    ['코스 형태', typeText],
     ['원하신 거리', p.km ? `${p.km}km` : '-'],
     ['함께 달리는 인원', p.group || '-'],
     ['여행 일정', p.days || (p.stay === '숙박 안 함' ? '당일치기' : '-')],
@@ -245,12 +326,19 @@ async function initMap() {
   new kakao.maps.Polyline({ map: state.map, path, strokeWeight: 10, strokeColor: '#ffffff', strokeOpacity: 0.9 });
   const line = new kakao.maps.Polyline({ map: state.map, path, strokeWeight: 6, strokeColor: '#f07c2a', strokeOpacity: 1 });
 
-  // 지도로 잰 실제 길이로 거리 갱신
+  // 예시 코스는 지도로 잰 실제 길이로 거리 갱신 (AI 코스는 TMAP 거리 그대로)
   const realKm = line.getLength() / 1000;
-  if (realKm > 0.1) {
+  if (c.source !== 'ai' && realKm > 0.1) {
     state.courseKm = Math.round(realKm * 10) / 10;
     renderStats();
   }
+
+  // AI 코스: 출발과 도착 사이에 들르는 곳
+  (c.waypoints || []).slice(1).forEach((w, i, arr) => {
+    const isLastTurn = c.type === '왕복' && i === arr.length - 1;
+    if (c.type === '편도' && i === arr.length - 1) return; // 편도의 마지막은 도착(E)
+    addPin(`via-${i}`, new kakao.maps.LatLng(w.lat, w.lng), isLastTurn ? '반' : i + 1, 'pin--via', isLastTurn ? `${w.name} (반환점)` : w.name);
+  });
 
   addPin('start', path[0], 'S', 'pin--start', c.start.name);
   addPin('end', path[path.length - 1], 'E', 'pin--end', c.end.name);
@@ -333,8 +421,7 @@ async function loadRestSpots() {
   const dense = densePath();
 
   // 왕복 코스는 앞 절반만 보면 충분
-  const c = state.course;
-  const roundTrip = c.start.lat === c.end.lat && c.start.lng === c.end.lng;
+  const roundTrip = state.course.type === '왕복';
   const usable = roundTrip ? dense.filter((pt) => pt.along <= dense[dense.length - 1].along / 2 + 1) : dense;
 
   // 약 700m마다 한 곳씩 주변 검색
