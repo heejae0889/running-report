@@ -5,9 +5,13 @@
 
 // ---------- 지역 목록 (설문 Q1 선택지 & 지도 중심 좌표) ----------
 const REGIONS = [
-  { code: 'busan', name: '부산', center: { lat: 35.1532, lng: 129.1186 } },
-  { code: 'seoul', name: '서울', center: { lat: 37.5296, lng: 126.9343 } },
-  { code: 'jeju',  name: '제주', center: { lat: 33.5145, lng: 126.5210 } },
+  // addr: 장소 검색 결과의 주소에 이 글자가 들어 있어야 그 지역으로 인정 (AI 코스의 장소 찾기에 사용)
+  { code: 'busan',     name: '부산', addr: '부산',   center: { lat: 35.1532, lng: 129.1186 } },
+  { code: 'seoul',     name: '서울', addr: '서울',   center: { lat: 37.5296, lng: 126.9343 } },
+  { code: 'jeju',      name: '제주', addr: '제주',   center: { lat: 33.5145, lng: 126.5210 } },
+  { code: 'gangneung', name: '강릉', addr: '강릉시', center: { lat: 37.7956, lng: 128.9050 } },
+  { code: 'gyeongju',  name: '경주', addr: '경주시', center: { lat: 35.8350, lng: 129.2600 } },
+  { code: 'yeosu',     name: '여수', addr: '여수시', center: { lat: 34.7400, lng: 127.7400 } },
 ];
 
 function getRegion(code) {
@@ -32,7 +36,7 @@ function buildQuery(obj) {
 function getParams() {
   const p = new URLSearchParams(location.search);
   return {
-    region: p.get('region'),               // 'busan' | 'seoul' | 'jeju'
+    region: p.get('region'),               // REGIONS의 code (busan, seoul, jeju, gangneung, gyeongju, yeosu)
     date: p.get('date'),                   // 'YYYY-MM-DD' (러닝할 날)
     stay: p.get('stay'),                   // '숙박함' | '숙박 안 함'
     days: p.get('days'),                   // '당일치기' | '1박 2일' | '2박 3일' | '3박 이상'
@@ -43,6 +47,18 @@ function getParams() {
     km: p.get('km') ? Number(p.get('km')) : null,
     scenery: p.get('scenery'),             // '바다' | '강·호수' | '도심 야경' | '공원·숲' | '산·언덕'
   };
+}
+
+// ---------- 키·몸무게 (칼로리 계산용) ----------
+// 개인 정보라 URL에 넣지 않고 sessionStorage(이 탭이 열려 있는 동안만)에 저장합니다.
+function saveBodyInfo(info) {
+  try {
+    if (info) sessionStorage.setItem('tripRunningBody', JSON.stringify(info));
+    else sessionStorage.removeItem('tripRunningBody');
+  } catch (e) { /* 저장이 막힌 브라우저면 무시 */ }
+}
+function readBodyInfo() {
+  try { return JSON.parse(sessionStorage.getItem('tripRunningBody')); } catch (e) { return null; }
 }
 
 // ---------- 데이터 불러오기 ----------
@@ -90,11 +106,12 @@ function formatDateKo(dateStr) {
 
 // ---------- 카카오맵 SDK 불러오기 ----------
 // 사용법: loadKakaoMap().then(() => { const map = new kakao.maps.Map(...); });
+// libraries=services: 장소 검색(편의점, 카페, 숙소 등)까지 함께 불러옵니다.
 function loadKakaoMap() {
   return new Promise((resolve, reject) => {
     if (window.kakao && window.kakao.maps) return kakao.maps.load(resolve);
     const script = document.createElement('script');
-    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${CONFIG.KAKAO_JS_KEY}&autoload=false`;
+    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${CONFIG.KAKAO_JS_KEY}&libraries=services&autoload=false`;
     script.onload = () => kakao.maps.load(resolve);
     script.onerror = () => reject(new Error('카카오맵 SDK를 불러오지 못했습니다. 키/도메인 등록/카카오맵 사용 설정을 확인하세요.'));
     document.head.appendChild(script);

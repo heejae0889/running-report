@@ -42,22 +42,37 @@
       </div>
     </section>
 
-    <!-- 분석 중 화면 (마지막 질문 뒤에 잠깐 표시) -->
+    <!-- 분석 중 화면: 실제 코스 생성(제미나이 → 카카오 → TMAP)이 끝날 때까지, 진행한 만큼 경로선과 진행바가 차오름 -->
     <section class="glass-card analyzing d-none" id="analyzing" aria-live="polite">
       <div class="analyzing-route" aria-hidden="true">
-        <svg viewBox="0 0 240 80" width="240" height="80">
-          <path class="analyzing-path-bg" d="M10 60 C 50 10, 90 10, 120 40 S 190 75, 230 20" />
-          <path class="analyzing-path" d="M10 60 C 50 10, 90 10, 120 40 S 190 75, 230 20" />
+        <svg viewBox="0 0 260 90" width="260" height="90">
+          <path class="analyzing-path-bg" d="M14 66 C 54 14, 94 14, 126 46 S 200 82, 246 22" />
+          <path class="analyzing-path" id="analyzingPath" d="M14 66 C 54 14, 94 14, 126 46 S 200 82, 246 22" />
+          <circle class="analyzing-runner" id="analyzingRunner" r="7" cx="14" cy="66" />
+          <circle class="analyzing-goal" r="5" cx="246" cy="22" />
         </svg>
       </div>
       <h2 class="analyzing-title">나만의 러닝 코스를 만드는 중이에요</h2>
+      <div class="analyzing-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="analyzingBar">
+        <div class="analyzing-bar-fill" id="analyzingFill"></div>
+      </div>
+      <p class="analyzing-percent"><b id="analyzingPercent">0</b>%</p>
+      <ol class="analyzing-steps" id="analyzingSteps">
+        <li data-step="plan">제미나이가 코스를 구상해요</li>
+        <li data-step="place">들를 곳의 위치를 찾아요</li>
+        <li data-step="route">실제 걷는 길을 계산해요</li>
+        <li data-step="done">레포트를 준비해요</li>
+      </ol>
       <p class="analyzing-step" id="analyzingStep">여행지 정보를 정리하는 중…</p>
     </section>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="js/config.js"></script>
+  <!-- 개인 키 파일 (GitHub에 안 올라감). 없으면 레포트에서 예시 코스를 보여 줍니다. -->
+  <script src="js/secrets.js"></script>
   <script src="js/common.js"></script>
+  <script src="js/course-ai.js"></script>
   <script src="js/survey.js"></script>
 </body>
 </html>

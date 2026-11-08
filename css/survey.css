@@ -183,6 +183,9 @@ body.survey-page {
   border-radius: 50%;
   background: var(--color-orange) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 12.5l4 4 8-9' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 16px no-repeat;
 }
+/* 여행지처럼 6개일 때는 가로로 넓적하게 (3 × 2) */
+.photo-grid.is-wide .photo-tile { aspect-ratio: 4 / 3; }
+
 /* 풍경처럼 5개일 때는 조금 작게 */
 .photo-grid.is-compact { grid-template-columns: repeat(5, 1fr); gap: 10px; }
 .photo-grid.is-compact .photo-tile { aspect-ratio: 3 / 4; border-radius: 14px; }
@@ -236,6 +239,47 @@ body.survey-page {
   font-size: 1.05rem;
 }
 .custom-input .unit { color: rgba(255, 255, 255, 0.75); }
+
+/* ---------- 유형 4: 키·몸무게 ---------- */
+.body-inputs {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.body-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.07);
+  font-weight: 700;
+}
+.body-field input {
+  width: 90px;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 1.3rem;
+  font-weight: 800;
+  text-align: right;
+  color-scheme: dark;
+}
+.body-field input::placeholder { color: rgba(255, 255, 255, 0.35); }
+.body-field .unit { color: rgba(255, 255, 255, 0.65); font-weight: 500; }
+.body-field:focus-within { border-color: var(--color-orange); }
+.btn-skip {
+  margin-top: 14px;
+  border: 0;
+  background: none;
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 4px 0;
+  cursor: pointer;
+}
+.btn-skip:hover { color: #fff; }
 
 /* ---------- 유형 3: 날짜 ---------- */
 .date-input {
@@ -293,33 +337,90 @@ body.survey-page {
 .btn-ghost:focus-visible,
 .btn-next:focus-visible,
 .date-input:focus-visible,
+.btn-skip:focus-visible,
 .custom-input input:focus-visible {
   outline: 3px solid #fff;
   outline-offset: 3px;
 }
 
-/* ---------- 분석 중 ---------- */
+/* ---------- 분석 중 (진행한 만큼 차오름: survey.js가 값을 넣음) ---------- */
 .analyzing {
   text-align: center;
-  padding: 48px 28px 52px;
+  padding: 44px clamp(22px, 5vw, 44px) 40px;
   max-width: 560px;
 }
+.analyzing-route svg { max-width: 100%; height: auto; overflow: visible; }
 .analyzing-path-bg,
 .analyzing-path {
   fill: none;
   stroke-width: 5;
   stroke-linecap: round;
 }
-.analyzing-path-bg { stroke: rgba(255, 255, 255, 0.2); stroke-dasharray: 6 8; }
-.analyzing-path {
-  stroke: var(--color-orange);
-  stroke-dasharray: 320;
-  stroke-dashoffset: 320;
-  animation: drawRoute 2.6s ease-in-out forwards;
+.analyzing-path-bg { stroke: rgba(255, 255, 255, 0.22); stroke-dasharray: 6 8; }
+.analyzing-path { stroke: var(--color-orange); }
+.analyzing-runner { fill: #fff; stroke: var(--color-orange); stroke-width: 4; }
+.analyzing-goal { fill: rgba(255, 255, 255, 0.5); }
+.analyzing.is-complete .analyzing-goal { fill: var(--color-orange); }
+
+.analyzing-title { font-size: 1.45rem; font-weight: 800; margin: 16px 0 18px; letter-spacing: -0.02em; }
+
+.analyzing-bar {
+  height: 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.16);
+  overflow: hidden;
 }
-@keyframes drawRoute { to { stroke-dashoffset: 0; } }
-.analyzing-title { font-size: 1.5rem; font-weight: 800; margin: 18px 0 6px; letter-spacing: -0.02em; }
-.analyzing-step { color: rgba(255, 255, 255, 0.72); margin: 0; min-height: 1.5em; }
+.analyzing-bar-fill {
+  height: 100%;
+  width: 0;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #ff9d57, var(--color-orange));
+}
+.analyzing-percent {
+  margin: 8px 0 18px;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.75);
+  font-variant-numeric: tabular-nums;
+}
+.analyzing-percent b { font-size: 1.3rem; color: #fff; }
+
+.analyzing-steps {
+  list-style: none;
+  margin: 0 auto 14px;
+  padding: 0;
+  display: inline-grid;
+  gap: 8px;
+  text-align: left;
+}
+.analyzing-steps li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 600;
+  transition: color 0.3s;
+}
+.analyzing-steps li::before {
+  content: '';
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+}
+.analyzing-steps li.is-active { color: #fff; }
+.analyzing-steps li.is-active::before {
+  border-color: rgba(240, 124, 42, 0.35);
+  border-top-color: var(--color-orange);
+  animation: spinStep 0.9s linear infinite;
+}
+.analyzing-steps li.is-done { color: rgba(255, 255, 255, 0.85); }
+.analyzing-steps li.is-done::before {
+  border-color: var(--color-orange);
+  background: var(--color-orange) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 12.5l4 4 8-9' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 12px no-repeat;
+}
+@keyframes spinStep { to { transform: rotate(360deg); } }
+.analyzing-step { color: rgba(255, 255, 255, 0.72); margin: 0; min-height: 1.5em; font-size: 0.92rem; }
 
 /* ---------- 모바일 ---------- */
 @media (max-width: 640px) {
@@ -339,5 +440,5 @@ body.survey-page {
 @media (prefers-reduced-motion: reduce) {
   .slide-in, .slide-in-back { animation: none; }
   .survey-bg-layer { transition: opacity 0.3s; transform: none !important; }
-  .analyzing-path { animation: none; stroke-dashoffset: 0; }
+  .analyzing-steps li.is-active::before { animation-duration: 3s; }
 }
