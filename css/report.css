@@ -165,6 +165,7 @@ body.report-page .site-footer { margin-top: 24px; }
   margin: 0 0 4px;
 }
 .block-note { color: var(--color-muted); font-size: 0.9rem; margin: 0; }
+.block-note:empty { display: none; }
 .loading { color: var(--color-muted); }
 
 /* 지도 */

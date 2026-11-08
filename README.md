@@ -77,7 +77,7 @@ report.html?region=busan&km=5&date=2026-11-14&level=입문&scenery=바다
 
 | 이름 | 값 | 필수 |
 |---|---|---|
-| `region` | `busan` / `seoul` / `jeju` (`js/common.js`의 REGIONS) | ✅ |
+| `region` | `busan` / `seoul` / `jeju` / `gangneung` / `gyeongju` / `yeosu` (`js/common.js`의 REGIONS) | ✅ |
 | `km` | 숫자 (예: 5) | ✅ |
 | `date` | `YYYY-MM-DD` | ✅ |
 | `level` | 입문 / 보통 / 숙련 | 선택 |

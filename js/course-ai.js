@@ -231,8 +231,9 @@ function findPlace(query, region) {
     places.keywordSearch(query, (data, status) => {
       clearTimeout(timer);
       if (status !== kakao.maps.services.Status.OK) return resolve(null);
-      // 주소가 그 지역인 첫 번째 결과
-      const hit = data.find((d) => (d.road_address_name || d.address_name || '').startsWith(region.name));
+      // 주소가 그 지역인 첫 번째 결과 (예: '강원특별자치도 강릉시 …'에 '강릉시'가 들어 있는지)
+      const addrKey = region.addr || region.name;
+      const hit = data.find((d) => (d.road_address_name || d.address_name || '').includes(addrKey));
       resolve(hit ? { lat: Number(hit.y), lng: Number(hit.x), name: hit.place_name } : null);
     }, {
       location: new kakao.maps.LatLng(region.center.lat, region.center.lng),

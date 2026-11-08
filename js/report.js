@@ -19,6 +19,9 @@ const REGION_PHOTOS = {
   busan: '1638591751482-1a7d27fcea15',
   seoul: '1760000843601-2070baed2478',
   jeju: '1562680802-9cf8b15f419d',
+  gangneung: '1720252741302-77213465eab2',
+  gyeongju: '1717346255618-1fbc136cb8f9',
+  yeosu: '1587121748119-ffb5090f9d82',
 };
 
 // ---------- 계산에 쓰는 값 ----------
@@ -188,7 +191,7 @@ async function getCourse(p, kakaoOk) {
       const c = pickCourse(courses, p);
       if (!c) return null;
       const same = c.start.lat === c.end.lat && c.start.lng === c.end.lng;
-      return { ...c, source: 'example', type: same ? '왕복' : '편도', note: reason };
+      return { ...c, source: 'example', type: c.type || (same ? '왕복' : '편도'), note: reason };
     } catch (e) {
       console.error(e);
       return null;
@@ -199,7 +202,7 @@ async function getCourse(p, kakaoOk) {
 
   const search = new URLSearchParams(location.search);
   const routeRaw = search.get('route');
-  const aiNote = '제미나이가 설문 답에 맞춰 짠 코스예요. 경로선은 TMAP 보행자 길찾기로 실제 길을 따라 그렸어요.';
+  const aiNote = '';   // AI 코스는 따로 설명 문구를 붙이지 않음
 
   // 설문에서 방금 만든 코스 → 그대로 사용 (다시 계산하지 않음)
   const built = routeRaw ? readBuiltCourse(routeRaw) : null;
@@ -210,7 +213,7 @@ async function getCourse(p, kakaoOk) {
     try {
       setMapStatus('공유받은 코스를 그리고 있어요…');
       const c = await rebuildCourseFromRoute(JSON.parse(routeRaw), p.region);
-      return { ...c, note: '공유받은 코스예요. 경로선은 TMAP 보행자 길찾기로 실제 길을 따라 그렸어요.' };
+      return { ...c, note: '' };
     } catch (e) {
       console.error(e);
     }

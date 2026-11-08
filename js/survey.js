@@ -28,6 +28,9 @@ const QUESTIONS = [
       { value: 'busan', label: '부산', desc: '바다를 끼고 달리기', img: '1638591751482-1a7d27fcea15' },
       { value: 'seoul', label: '서울', desc: '한강을 따라 달리기', img: '1760000843601-2070baed2478' },
       { value: 'jeju',  label: '제주', desc: '해안 절벽을 따라 달리기', img: '1562680802-9cf8b15f419d' },
+      { value: 'gangneung', label: '강릉', desc: '경포호와 동해를 따라 달리기', img: '1720252741302-77213465eab2' },
+      { value: 'gyeongju',  label: '경주', desc: '호수와 옛 도시를 따라 달리기', img: '1717346255618-1fbc136cb8f9' },
+      { value: 'yeosu',     label: '여수', desc: '밤바다를 따라 달리기', img: '1587121748119-ffb5090f9d82' },
     ],
   },
   {
@@ -227,7 +230,8 @@ function render(direction = 'forward') {
 }
 
 function renderPhoto(q) {
-  return `<div class="photo-grid ${q.compact ? 'is-compact' : ''}">${q.options.map((o) => `
+  const layout = q.compact ? 'is-compact' : q.options.length > 3 ? 'is-wide' : '';
+  return `<div class="photo-grid ${layout}">${q.options.map((o) => `
     <button type="button" class="photo-tile ${answers[q.key] === o.value ? 'selected' : ''}" data-value="${o.value}"
             style="background-image:url('${photo(o.img, 600)}')" aria-pressed="${answers[q.key] === o.value}">
       <span class="tile-text">

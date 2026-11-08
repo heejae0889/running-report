@@ -5,9 +5,13 @@
 
 // ---------- 지역 목록 (설문 Q1 선택지 & 지도 중심 좌표) ----------
 const REGIONS = [
-  { code: 'busan', name: '부산', center: { lat: 35.1532, lng: 129.1186 } },
-  { code: 'seoul', name: '서울', center: { lat: 37.5296, lng: 126.9343 } },
-  { code: 'jeju',  name: '제주', center: { lat: 33.5145, lng: 126.5210 } },
+  // addr: 장소 검색 결과의 주소에 이 글자가 들어 있어야 그 지역으로 인정 (AI 코스의 장소 찾기에 사용)
+  { code: 'busan',     name: '부산', addr: '부산',   center: { lat: 35.1532, lng: 129.1186 } },
+  { code: 'seoul',     name: '서울', addr: '서울',   center: { lat: 37.5296, lng: 126.9343 } },
+  { code: 'jeju',      name: '제주', addr: '제주',   center: { lat: 33.5145, lng: 126.5210 } },
+  { code: 'gangneung', name: '강릉', addr: '강릉시', center: { lat: 37.7956, lng: 128.9050 } },
+  { code: 'gyeongju',  name: '경주', addr: '경주시', center: { lat: 35.8350, lng: 129.2600 } },
+  { code: 'yeosu',     name: '여수', addr: '여수시', center: { lat: 34.7400, lng: 127.7400 } },
 ];
 
 function getRegion(code) {
@@ -32,7 +36,7 @@ function buildQuery(obj) {
 function getParams() {
   const p = new URLSearchParams(location.search);
   return {
-    region: p.get('region'),               // 'busan' | 'seoul' | 'jeju'
+    region: p.get('region'),               // REGIONS의 code (busan, seoul, jeju, gangneung, gyeongju, yeosu)
     date: p.get('date'),                   // 'YYYY-MM-DD' (러닝할 날)
     stay: p.get('stay'),                   // '숙박함' | '숙박 안 함'
     days: p.get('days'),                   // '당일치기' | '1박 2일' | '2박 3일' | '3박 이상'
