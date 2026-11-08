@@ -7,7 +7,7 @@
 //   칼로리         : 운동 강도(MET) × 몸무게 × 시간
 //   날씨           : Open-Meteo (키 필요 없음)
 //   쉬어 갈 곳·숙소: 카카오 장소 검색 (카카오 JavaScript 키)
-//   행사           : 한국관광공사 TourAPI (config.js의 TOUR_API_KEY, 없으면 예시 데이터)
+//   행사           : 한국관광공사 TourAPI (secrets.js의 TOUR_API_KEY, 없으면 예시 데이터)
 //   PDF 저장       : html2canvas(화면 캡처) + jsPDF(PDF 만들기)
 // 공통 함수(getParams, getRegion, loadJSON, pickCourse, loadKakaoMap, readBodyInfo 등)는 js/common.js 참고
 // =============================================
@@ -580,12 +580,13 @@ function bindPlaceButtons(selector) {
 }
 
 // =============================================
-// 5. 날씨 (Open-Meteo)
+// 5. 날씨 (Open-Meteo) + 미세먼지 + 일출·일몰 + 옷차림 추천
 // =============================================
 async function loadWeather() {
   const p = state.params;
   const { lat, lng } = state.course.start;
   const hours = TIME_HOURS[p.time] || TIME_HOURS['새벽·아침'];
+  const slot = p.time || '새벽·아침';
 
   const today = new Date(ymd(new Date()) + 'T00:00:00');
   const target = new Date(p.date + 'T00:00:00');
@@ -594,7 +595,7 @@ async function loadWeather() {
   // 15일 안이면 예보, 그보다 멀면 작년 같은 날 기록
   let url;
   let isForecast = true;
-  const common = `latitude=${lat}&longitude=${lng}&timezone=Asia%2FSeoul&wind_speed_unit=ms`;
+  const common = `latitude=${lat}&longitude=${lng}&timezone=Asia%2FSeoul&wind_speed_unit=ms&daily=sunrise,sunset`;
   if (daysAhead >= 0 && daysAhead <= 15) {
     url = `https://api.open-meteo.com/v1/forecast?${common}&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,weather_code,wind_speed_10m,relative_humidity_2m&start_date=${p.date}&end_date=${p.date}`;
   } else {
@@ -604,6 +605,9 @@ async function loadWeather() {
     const d = ymd(lastYear);
     url = `https://archive-api.open-meteo.com/v1/archive?${common}&hourly=temperature_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,relative_humidity_2m&start_date=${d}&end_date=${d}`;
   }
+
+  // 미세먼지는 날씨와 동시에 요청 (예보는 약 4일 뒤까지만 나옴)
+  const airPromise = loadAirQuality(lat, lng, p.date, hours);
 
   try {
     const res = await fetch(url);
@@ -617,25 +621,33 @@ async function loadWeather() {
     const feels = avg(pickHours(h.apparent_temperature));
     const rainProb = Math.max(0, ...pickHours(h.precipitation_probability));
     const rainMm = pickHours(h.precipitation).reduce((a, b) => a + b, 0);
+    const rainChance = isForecast ? rainProb : rainMm > 0.5 ? 70 : 0;
     const wind = Math.max(0, ...pickHours(h.wind_speed_10m));
     const humid = avg(pickHours(h.relative_humidity_2m));
     const code = Math.max(0, ...pickHours(h.weather_code));
     const [desc, icon] = weatherText(code);
 
+    // 일출 · 일몰 ('2026-11-17T06:52' → '06:52')
+    const hhmm = (iso) => (iso ? iso.slice(11, 16) : null);
+    const sunrise = hhmm(data.daily?.sunrise?.[0]);
+    const sunset = hhmm(data.daily?.sunset?.[0]);
+    const isDark = darkDuringRun(slot, hours, sunrise, sunset);
+
     $('weatherSource').textContent = isForecast
-      ? `${p.time || '아침'} 시간대 예보예요.`
-      : `아직 예보가 나오지 않은 날짜라, 작년 같은 날 ${p.time || '아침'} 기록을 보여 드려요.`;
+      ? `${slot} 시간대 예보예요.`
+      : `아직 예보가 나오지 않은 날짜라, 작년 같은 날 ${slot} 기록을 보여 드려요.`;
 
     const rainCell = isForecast
       ? `<div><dt>비 올 확률</dt><dd>${Math.round(rainProb)}%</dd></div>`
       : `<div><dt>강수량</dt><dd>${rainMm.toFixed(1)}mm</dd></div>`;
 
+    const air = await airPromise;
+    const outfit = outfitFor(feels, rainChance, wind, isDark, slot === '낮' && code <= 2);
+
     $('weather').innerHTML = `
       <div class="weather-main">
         <span class="weather-icon" aria-hidden="true">${icon}</span>
-        <div>
-          <div class="weather-temp">${Math.round(temp)}°</div>
-        </div>
+        <div class="weather-temp">${Math.round(temp)}°</div>
         <div>
           <div class="weather-desc">${desc}</div>
           <div class="weather-sub">체감 ${Math.round(feels)}°</div>
@@ -646,7 +658,54 @@ async function loadWeather() {
         <div><dt>바람</dt><dd>${wind.toFixed(1)}m/s</dd></div>
         <div><dt>습도</dt><dd>${Math.round(humid)}%</dd></div>
       </dl>
-      <p class="weather-tip">${runningTip(feels, isForecast ? rainProb : rainMm > 0.5 ? 70 : 0, wind)}</p>
+
+      <div class="wx-rows">
+        <section class="wx-row">
+          <h3 class="wx-label">시간별</h3>
+          <div class="wx-body">
+            <ol class="hourly" aria-label="시간별 날씨">
+              ${hours.map((i) => {
+                const [hDesc, hIcon] = weatherText(h.weather_code?.[i] ?? 0);
+                const rain = isForecast
+                  ? `${Math.round(h.precipitation_probability?.[i] ?? 0)}%`
+                  : `${(h.precipitation?.[i] ?? 0).toFixed(1)}mm`;
+                return `<li>
+                  <span class="hr-time">${i}시</span>
+                  <span class="hr-icon" title="${hDesc}" aria-label="${hDesc}">${hIcon}</span>
+                  <span class="hr-temp">${Math.round(h.temperature_2m?.[i] ?? 0)}°</span>
+                  <span class="hr-rain">💧${rain}</span>
+                </li>`;
+              }).join('')}
+            </ol>
+          </div>
+        </section>
+        <section class="wx-row">
+          <h3 class="wx-label">공기</h3>
+          <div class="wx-body">${renderAir(air)}</div>
+        </section>
+        <section class="wx-row">
+          <h3 class="wx-label">해</h3>
+          <div class="wx-body">
+            ${sunrise && sunset ? `
+              <div class="sun-times">
+                <span><span aria-hidden="true">🌅</span> 일출 <b>${sunrise}</b></span>
+                <span><span aria-hidden="true">🌇</span> 일몰 <b>${sunset}</b></span>
+              </div>
+              ${(() => {
+                const note = [sunNote(slot, hours, sunrise, sunset), isForecast ? '' : '(작년 기준)'].filter(Boolean).join(' ');
+                return note ? `<p class="wx-note">${note}</p>` : '';
+              })()}` : '<p class="wx-note">일출·일몰 정보를 불러오지 못했어요.</p>'}
+          </div>
+        </section>
+        <section class="wx-row">
+          <h3 class="wx-label">옷차림</h3>
+          <div class="wx-body">
+            <ul class="outfit" aria-label="추천 옷차림">
+              ${outfit.map(([emoji, text]) => `<li><span aria-hidden="true">${emoji}</span>${text}</li>`).join('')}
+            </ul>
+          </div>
+        </section>
+      </div>
     `;
   } catch (e) {
     console.error(e);
@@ -655,18 +714,93 @@ async function loadWeather() {
   }
 }
 
-// 체감 온도·비·바람으로 한 줄 조언
-function runningTip(feels, rainChance, wind) {
-  const tips = [];
-  if (feels < 0) tips.push('영하의 추위예요. 장갑과 귀를 덮는 모자를 챙기고, 실내에서 충분히 몸을 풀고 나가세요.');
-  else if (feels < 8) tips.push('쌀쌀해요. 얇은 겉옷을 입고 시작해서 몸이 데워지면 벗어 주세요.');
-  else if (feels < 21) tips.push('달리기 딱 좋은 기온이에요.');
-  else if (feels < 26) tips.push('조금 더울 수 있어요. 물을 챙기고 페이스를 살짝 늦춰 보세요.');
-  else tips.push('더워요. 그늘이 있는 구간을 고르고, 중간중간 물을 꼭 마셔 주세요.');
-  if (rainChance >= 60) tips.push('비 소식이 있으니 모자나 얇은 우비를 챙기세요.');
-  if (wind >= 8) tips.push('바람이 강해요. 맞바람 구간에서는 무리하지 마세요.');
-  return tips.join(' ');
+// ---------- 미세먼지 (Open-Meteo 대기질, 환경부 등급 기준) ----------
+const PM10_GRADES = [[30, '좋음'], [80, '보통'], [150, '나쁨'], [Infinity, '매우 나쁨']];
+const PM25_GRADES = [[15, '좋음'], [35, '보통'], [75, '나쁨'], [Infinity, '매우 나쁨']];
+const gradeOf = (value, table) => table.find(([max]) => value <= max)[1];
+const GRADE_CLASS = { '좋음': 'aq--good', '보통': 'aq--normal', '나쁨': 'aq--bad', '매우 나쁨': 'aq--worst' };
+
+async function loadAirQuality(lat, lng, date, hours) {
+  try {
+    const res = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lng}&hourly=pm10,pm2_5&timezone=Asia%2FSeoul&start_date=${date}&end_date=${date}`);
+    if (!res.ok) return null;                       // 예보 범위 밖
+    const data = await res.json();
+    const pick = (arr) => (arr || []).filter((_, i) => hours.includes(i)).filter((v) => v !== null && v !== undefined);
+    const pm10 = pick(data.hourly?.pm10);
+    const pm25 = pick(data.hourly?.pm2_5);
+    if (!pm10.length || !pm25.length) return null;  // 아직 값이 없음
+    return {
+      pm10: Math.round(Math.max(...pm10)),
+      pm25: Math.round(Math.max(...pm25)),
+    };
+  } catch (e) {
+    return null;
+  }
 }
+
+function renderAir(air) {
+  if (!air) return '<p class="wx-note">아직 미세먼지 예보가 나오지 않았어요. 달리기 3~4일 전부터 확인할 수 있어요.</p>';
+  const g10 = gradeOf(air.pm10, PM10_GRADES);
+  const g25 = gradeOf(air.pm25, PM25_GRADES);
+  const order = ['좋음', '보통', '나쁨', '매우 나쁨'];
+  const worst = order[Math.max(order.indexOf(g10), order.indexOf(g25))];
+  // 나쁠 때만 경고 문구
+  const note = {
+    '나쁨': '마스크를 챙기고, 거리와 강도를 줄이는 게 좋아요.',
+    '매우 나쁨': '실외 러닝보다 실내 운동을 추천해요.',
+  }[worst] || '';
+  return `
+    <div class="aq-pills">
+      <span class="aq-pill ${GRADE_CLASS[g10]}">미세먼지 <b>${g10}</b> <small>${air.pm10}㎍/㎥</small></span>
+      <span class="aq-pill ${GRADE_CLASS[g25]}">초미세먼지 <b>${g25}</b> <small>${air.pm25}㎍/㎥</small></span>
+    </div>
+    ${note ? `<p class="wx-note wx-note--warn">${note}</p>` : ''}`;
+}
+
+// ---------- 일출 · 일몰 ----------
+const toMin = (hm) => { const [h, m] = hm.split(':').map(Number); return h * 60 + m; };
+const fromMin = (min) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+
+// 달리는 시간 중에 어두운 때가 있는지 (시간대의 첫 시각 ~ 마지막 시각+1시간)
+function darkDuringRun(slot, hours, sunrise, sunset) {
+  if (!sunrise || !sunset) return slot === '밤';
+  const start = hours[0] * 60;
+  const end = (hours[hours.length - 1] + 1) * 60;
+  return start < toMin(sunrise) || end > toMin(sunset);
+}
+
+function sunNote(slot, hours, sunrise, sunset) {
+  const rise = toMin(sunrise);
+  const set = toMin(sunset);
+  const start = hours[0] * 60;
+  if (slot === '새벽·아침') return start < rise ? `${fromMin(rise - 15)}에 출발하면 일출을 보며 달려요.` : '';
+  if (slot === '저녁') return `${fromMin(set - 30)}에 출발하면 노을을 보며 달려요.`;
+  if (slot === '밤') return '해가 진 뒤라 어두워요.';
+  return '';
+}
+
+// ---------- 옷차림 추천 (체감 온도 기준 + 비 · 바람 · 어두움 · 햇빛) ----------
+function outfitFor(feels, rainChance, wind, isDark, isSunnyDay) {
+  let items;
+  if (feels >= 22) items = [['👕', '반팔'], ['🩳', '반바지']];
+  else if (feels >= 15) items = [['👕', '반팔'], ['🩳', '반바지'], ['🧥', '출발 전 걸칠 얇은 겉옷']];
+  else if (feels >= 9) items = [['👚', '얇은 긴팔'], ['🩳', '반바지나 레깅스']];
+  else if (feels >= 3) items = [['👚', '긴팔'], ['🧥', '얇은 바람막이'], ['👖', '레깅스나 긴 바지']];
+  else if (feels >= -3) items = [['🧶', '기모 긴팔'], ['🧥', '바람막이'], ['👖', '긴 바지'], ['🧤', '장갑']];
+  else items = [['🧶', '기모 상의'], ['🧥', '방풍 재킷'], ['👖', '기모 바지'], ['🧤', '장갑'], ['🧣', '넥워머']];
+
+  const has = (word) => items.some(([, t]) => t.includes(word));
+  if (wind >= 6 && !has('바람막이') && !has('재킷')) items.push(['🧥', '얇은 바람막이']);
+  if (rainChance >= 50) items.push(['🧢', '챙 있는 모자']);
+  if (rainChance >= 70) items.push(['☔', '얇은 우비']);
+  if (isSunnyDay) {
+    if (!has('모자')) items.push(['🧢', '모자']);
+    items.push(['🧴', '선크림']);
+  }
+  if (isDark) items.push(['🔦', '반사띠나 라이트']);
+  return items;
+}
+
 
 // =============================================
 // 6. 근처 행사 (TourAPI, 키가 없으면 예시 데이터)
@@ -677,7 +811,7 @@ async function loadEvents() {
   let events = [];
   let isSample = false;
 
-  if (CONFIG.TOUR_API_KEY) {
+  if (tourApiKey()) {
     try {
       events = await fetchTourEvents(p.date, start.lat, start.lng);
     } catch (e) {
@@ -733,6 +867,14 @@ async function loadEvents() {
   state.mapReady.then(addEventPins).catch(() => {});
 }
 
+// TourAPI 키: secrets.js(GitHub에 안 올라감) → config.js 순서로 찾기
+// Encoding 키(%2B 같은 글자가 섞인 것)를 넣어도 동작하도록 한 번 풀어서 사용
+function tourApiKey() {
+  const raw = (typeof SECRETS !== 'undefined' && SECRETS.TOUR_API_KEY) || CONFIG.TOUR_API_KEY || '';
+  if (!raw) return '';
+  try { return raw.includes('%') ? decodeURIComponent(raw) : raw; } catch (e) { return raw; }
+}
+
 // 한국관광공사 TourAPI: 행사정보조회
 async function fetchTourEvents(date, lat, lng) {
   const day = date.replaceAll('-', '');
@@ -740,7 +882,7 @@ async function fetchTourEvents(date, lat, lng) {
   const from = new Date(date + 'T00:00:00');
   from.setDate(from.getDate() - 120);
   const params = new URLSearchParams({
-    serviceKey: CONFIG.TOUR_API_KEY,
+    serviceKey: tourApiKey(),
     MobileOS: 'ETC',
     MobileApp: 'TripRunning',
     _type: 'json',
