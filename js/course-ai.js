@@ -12,8 +12,10 @@ const AI_KEYS = () => (typeof SECRETS !== 'undefined' ? SECRETS : {});
 const hasAiKeys = () => Boolean(AI_KEYS().GEMINI_API_KEY && AI_KEYS().TMAP_APP_KEY);
 const hasTmapKey = () => Boolean(AI_KEYS().TMAP_APP_KEY);
 
-// 원하는 거리와 이 정도(25%) 넘게 다르면 다시 요청
+// 원하는 거리와 25% 넘게 다르면 제미나이에게 다시 짜 달라고 요청
+// (무한히 기다리지 않도록 최대 3번까지 다시 시도하고, 그래도 안 맞으면 가장 가까웠던 코스를 사용)
 const DISTANCE_TOLERANCE = 0.25;
+const MAX_RETRIES = 3;
 
 // ---------- 메인: 설문 답 → 코스 ----------
 // onStep(text, percent, step): 진행 상황을 화면에 보여 줄 때 사용
@@ -22,28 +24,32 @@ const DISTANCE_TOLERANCE = 0.25;
 async function buildAiCourse(params, onStep = () => {}) {
   const region = getRegion(params.region);
   const target = params.km || 5;
+  const gap = (c) => Math.abs(c.distanceKm - target) / target;
 
+  // 첫 시도: 진행바 8% → 85%
   onStep('제미나이가 코스를 구상하고 있어요…', 8, 'plan');
   let plan = await askGeminiForPlan(params);
-  let course = await planToCourse(plan, region, (text, frac, step) => onStep(text, 45 + frac * 40, step));
+  let best = await planToCourse(plan, region, (text, frac, step) => onStep(text, 45 + frac * 40, step));
+  const tried = [{ plan, km: best.distanceKm }];
 
-  // 거리가 많이 다르면 한 번 더 (더 가까운 쪽을 사용)
-  const off = Math.abs(course.distanceKm - target) / target;
-  if (off > DISTANCE_TOLERANCE) {
-    onStep(`거리를 맞추고 있어요… (${course.distanceKm}km → 목표 ${target}km)`, 86, 'plan');
+  // 다시 시도: 남은 진행바(86% → 96%)를 시도 횟수만큼 나눠서 사용
+  for (let attempt = 1; attempt <= MAX_RETRIES && gap(best) > DISTANCE_TOLERANCE; attempt++) {
+    const from = 86 + ((attempt - 1) / MAX_RETRIES) * 10;
+    const size = 10 / MAX_RETRIES;
+    const last = tried[tried.length - 1];
+    onStep(`거리를 맞추고 있어요… (${last.km}km → 목표 ${target}km, ${attempt}/${MAX_RETRIES})`, from, 'plan');
     try {
-      const plan2 = await askGeminiForPlan(params, { previousKm: course.distanceKm, previousPlan: plan });
-      const course2 = await planToCourse(plan2, region, (text, frac, step) => onStep(text, 90 + frac * 6, step));
-      if (Math.abs(course2.distanceKm - target) < Math.abs(course.distanceKm - target)) {
-        plan = plan2;
-        course = course2;
-      }
+      const nextPlan = await askGeminiForPlan(params, { attempts: tried });
+      const next = await planToCourse(nextPlan, region, (text, frac, step) => onStep(text, from + frac * size, step));
+      tried.push({ plan: nextPlan, km: next.distanceKm });
+      if (gap(next) < gap(best)) best = next;
     } catch (e) {
-      console.warn('두 번째 시도 실패, 첫 번째 코스를 사용', e);
+      console.warn(`${attempt}번째 다시 시도 실패`, e);
     }
   }
+
   onStep('코스가 완성됐어요!', 97, 'done');
-  return course;
+  return best;
 }
 
 // 설문 페이지에서 만든 코스를 레포트 페이지로 넘기기 (이 탭에만 잠깐 저장)
@@ -115,7 +121,12 @@ ${lines.join('\n')}
 7. summary, reasons, tips에는 거리 숫자(km)를 쓰지 말고, 코스를 다시 짠 과정이나 이전 코스 이야기도 쓰지 마. 사용자에게 보여 줄 글이야.`;
 
   if (retry) {
-    prompt += `\n\n[다시 짜기]\n직전에 짠 코스(${retry.previousPlan.waypoints.map((w) => w.query).join(' → ')}, ${retry.previousPlan.type})는 실제로 재 보니 ${retry.previousKm}km였어. 원하는 거리 ${p.km}km에 더 가깝도록 들를 곳을 바꾸거나 늘리거나 줄여서 다시 짜 줘.`;
+    const history = retry.attempts
+      .map((t, i) => `${i + 1}) ${t.plan.waypoints.map((w) => w.query).join(' → ')} (${t.plan.type}) → 실제 ${t.km}km`)
+      .join('\n');
+    const lastKm = retry.attempts[retry.attempts.length - 1].km;
+    const direction = lastKm < p.km ? '더 멀리 가도록 반환점을 멀리 잡거나 들를 곳을 늘려' : '더 가깝게 반환점을 당기거나 들를 곳을 줄여';
+    prompt += `\n\n[다시 짜기]\n지금까지 짠 코스를 실제 길로 재 보니 원하는 거리 ${p.km}km와 차이가 컸어.\n${history}\n이번에는 ${direction} 원하는 거리의 ±25% 안에 들어오게 다시 짜 줘.`;
   }
 
   const schema = {
