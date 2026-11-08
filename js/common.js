@@ -1,11 +1,5 @@
-// =============================================
-// 공통 함수 — 모든 페이지에서 사용
-// 함수를 추가/수정할 때는 팀에 먼저 공유해 주세요.
-// =============================================
-
 // ---------- 지역 목록 (설문 Q1 선택지 & 지도 중심 좌표) ----------
 const REGIONS = [
-  // addr: 장소 검색 결과의 주소에 이 글자가 들어 있어야 그 지역으로 인정 (AI 코스의 장소 찾기에 사용)
   { code: 'busan',     name: '부산', addr: '부산',   center: { lat: 35.1532, lng: 129.1186 } },
   { code: 'seoul',     name: '서울', addr: '서울',   center: { lat: 37.5296, lng: 126.9343 } },
   { code: 'jeju',      name: '제주', addr: '제주',   center: { lat: 33.5145, lng: 126.5210 } },
@@ -19,11 +13,6 @@ function getRegion(code) {
 }
 
 // ---------- 페이지 간 데이터 전달: URL 파라미터 ----------
-// 설문 → 레포트로 이동할 때 이렇게 씁니다.
-//   location.href = 'report.html?' + buildQuery({ region: 'busan', km: 5, date: '2026-11-14' });
-// 레포트에서 읽을 때:
-//   const p = getParams();  // { region: 'busan', km: 5, date: '2026-11-14', ... }
-// 이 주소를 그대로 복사하면 '링크 공유'가 됩니다.
 
 function buildQuery(obj) {
   const params = new URLSearchParams();
@@ -36,34 +25,31 @@ function buildQuery(obj) {
 function getParams() {
   const p = new URLSearchParams(location.search);
   return {
-    region: p.get('region'),               // REGIONS의 code (busan, seoul, jeju, gangneung, gyeongju, yeosu)
-    date: p.get('date'),                   // 'YYYY-MM-DD' (러닝할 날)
-    stay: p.get('stay'),                   // '숙박함' | '숙박 안 함'
-    days: p.get('days'),                   // '당일치기' | '1박 2일' | '2박 3일' | '3박 이상'
-    time: p.get('time'),                   // '새벽·아침' | '낮' | '저녁' | '밤'
-    group: p.get('group'),                 // '혼자' | '2명' | '3~4명' | '5명 이상'
-    level: p.get('level'),                 // '입문' | '보통' | '숙련'
-    pace: p.get('pace'),                   // '7분 이상' | '6~7분' | '5~6분' | '5분 이내' | '모름' (1km당)
+    region: p.get('region'),               
+    date: p.get('date'),                   
+    stay: p.get('stay'),                   
+    days: p.get('days'),                   
+    time: p.get('time'),                   
+    group: p.get('group'),                
+    level: p.get('level'),               
+    pace: p.get('pace'),                 
     km: p.get('km') ? Number(p.get('km')) : null,
-    scenery: p.get('scenery'),             // '바다' | '강·호수' | '도심 야경' | '공원·숲' | '산·언덕'
+    scenery: p.get('scenery'),           
   };
 }
 
 // ---------- 키·몸무게 (칼로리 계산용) ----------
-// 개인 정보라 URL에 넣지 않고 sessionStorage(이 탭이 열려 있는 동안만)에 저장합니다.
 function saveBodyInfo(info) {
   try {
     if (info) sessionStorage.setItem('tripRunningBody', JSON.stringify(info));
     else sessionStorage.removeItem('tripRunningBody');
-  } catch (e) { /* 저장이 막힌 브라우저면 무시 */ }
+  } catch (e) {}
 }
 function readBodyInfo() {
   try { return JSON.parse(sessionStorage.getItem('tripRunningBody')); } catch (e) { return null; }
 }
 
 // ---------- 데이터 불러오기 ----------
-// ⚠ fetch는 파일을 더블클릭(file://)으로 열면 동작하지 않습니다.
-//    반드시 VS Code의 Live Server로 열어 주세요.
 async function loadJSON(path) {
   const res = await fetch(path);
   if (!res.ok) throw new Error(`${path} 불러오기 실패 (${res.status})`);
@@ -71,8 +57,6 @@ async function loadJSON(path) {
 }
 
 // ---------- 코스 선정 ----------
-// 같은 지역 코스 중 원하는 거리와 가장 가까운 코스를 고릅니다.
-// 선택 질문(풍경, 난이도)이 일치하면 우선합니다. 필요하면 규칙을 바꿔도 됩니다.
 function pickCourse(courses, { region, km, scenery, level }) {
   const candidates = courses.filter((c) => c.region === region);
   if (candidates.length === 0) return null;
@@ -85,7 +69,7 @@ function pickCourse(courses, { region, km, scenery, level }) {
   return candidates.sort((a, b) => score(a) - score(b))[0];
 }
 
-// ---------- 거리 계산 (두 좌표 사이 직선거리, km) ----------
+// ---------- 거리 계산 (두 좌표 사이 직선거리) ----------
 function distanceKm(lat1, lng1, lat2, lng2) {
   const R = 6371;
   const toRad = (d) => (d * Math.PI) / 180;
@@ -96,7 +80,7 @@ function distanceKm(lat1, lng1, lat2, lng2) {
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
-// ---------- 날짜 표시: '2026-11-14' → '11월 14일(토)' ----------
+// ---------- 날짜 표시----------
 function formatDateKo(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr + 'T00:00:00');
@@ -104,9 +88,7 @@ function formatDateKo(dateStr) {
   return `${d.getMonth() + 1}월 ${d.getDate()}일(${days[d.getDay()]})`;
 }
 
-// ---------- 카카오맵 SDK 불러오기 ----------
-// 사용법: loadKakaoMap().then(() => { const map = new kakao.maps.Map(...); });
-// libraries=services: 장소 검색(편의점, 카페, 숙소 등)까지 함께 불러옵니다.
+// ---------- 카카오맵 불러오기 ----------
 function loadKakaoMap() {
   return new Promise((resolve, reject) => {
     if (window.kakao && window.kakao.maps) return kakao.maps.load(resolve);
@@ -119,7 +101,6 @@ function loadKakaoMap() {
 }
 
 // ---------- 공통 헤더 / 푸터 ----------
-// 각 페이지에 <header id="site-header"></header>, <footer id="site-footer"></footer>만 두면 자동으로 채워집니다.
 function renderLayout() {
   const page = location.pathname.split('/').pop() || 'index.html';
   const nav = [
