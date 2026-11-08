@@ -1,9 +1,3 @@
-// =============================================
-// 시작 화면 (index.html) 스크립트
-// - 스크롤 위치에 따라 사진 확대·문구 나타남 효과 (애플 홈페이지 느낌)
-// - 오른쪽 단계 표시, 아래쪽 스크롤 안내
-// =============================================
-
 document.addEventListener('DOMContentLoaded', () => {
   const panels = [...document.querySelectorAll('.panel')];
   const stops = document.getElementById('routeStops');
@@ -44,7 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const vh = window.innerHeight;
 
     panels.forEach((panel) => {
-      // p: 0이면 화면에 딱 맞음, +1이면 한 화면 아래, -1이면 한 화면 위
       const p = panel.getBoundingClientRect().top / vh;
       const d = Math.min(Math.abs(p), 1);
       const fade = Math.max(0, 1 - d * 1.7);
@@ -84,11 +77,11 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onScroll);
 
-  // 키보드: ↓ / PageDown / 스페이스 → 다음, ↑ / PageUp → 이전
+  // 키보드:
   window.addEventListener('keydown', (e) => {
     const tag = document.activeElement.tagName;
     if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
-    if (e.key === ' ' && ['BUTTON', 'A'].includes(tag)) return; // 버튼에 초점이 있으면 스페이스는 버튼 누르기
+    if (e.key === ' ' && ['BUTTON', 'A'].includes(tag)) return;
     if (['ArrowDown', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); goTo(currentIndex() + 1); }
     if (['ArrowUp', 'PageUp'].includes(e.key)) { e.preventDefault(); goTo(currentIndex() - 1); }
   });
