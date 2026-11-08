@@ -319,6 +319,63 @@ body.report-page .site-footer { margin-top: 24px; }
 .weather-grid div { background: #f5f6f8; border-radius: 12px; padding: 10px 12px; }
 .weather-grid dt { font-size: 0.78rem; color: var(--color-muted); font-weight: 600; }
 .weather-grid dd { margin: 2px 0 0; font-weight: 800; font-size: 1.1rem; }
+/* 공기 · 해 · 옷차림: 왼쪽 이름표 + 오른쪽 내용 */
+.wx-rows { margin: 4px 0 16px; border-top: 1px solid #eceef1; }
+.wx-row {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid #eceef1;
+}
+.wx-label {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--color-muted);
+  margin: 2px 0 0;
+}
+.wx-body { min-width: 0; }
+.wx-note { margin: 6px 0 0; font-size: 0.88rem; color: #4b5563; line-height: 1.5; }
+
+.aq-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.aq-pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.aq-pill b { font-weight: 800; }
+.aq-pill small { font-size: 0.75rem; opacity: 0.75; font-variant-numeric: tabular-nums; }
+.aq--good   { background: #e3efff; color: #1d5bb8; }   /* 좋음: 파랑 */
+.aq--normal { background: #e2f5e9; color: #1f7a45; }   /* 보통: 초록 */
+.aq--bad    { background: #fff1d6; color: #9a5b00; }   /* 나쁨: 주황 */
+.aq--worst  { background: #fde4e4; color: #b42318; }   /* 매우 나쁨: 빨강 */
+
+.sun-times { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.95rem; }
+.sun-times b { font-variant-numeric: tabular-nums; margin-left: 2px; }
+
+.outfit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.outfit li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #f5f6f8;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
 .weather-tip {
   margin: 0;
   padding: 12px 14px;
