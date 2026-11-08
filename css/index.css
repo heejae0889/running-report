@@ -1,21 +1,15 @@
-/* =============================================
-   시작 화면 (index.html) 전용 스타일
-   애플 공식 홈페이지처럼: 화면 가득 사진 + 굵은 문구, 스크롤 한 번에 한 화면
-   ============================================= */
-
-/* 스크롤하면 화면 단위로 딱딱 멈추게 */
 html.snap-page {
   scroll-snap-type: y mandatory;
   scroll-behavior: smooth;
 }
 
 body.home {
-  display: block;          /* common.css의 flex 레이아웃 해제 */
+  display: block;        
   background: #000;
   color: #fff;
 }
 
-/* ---------- 화면 한 장 ---------- */
+
 .panel {
   position: relative;
   height: 100vh;
@@ -27,7 +21,7 @@ body.home {
   background: #000;
 }
 
-/* 배경 사진: 스크롤에 따라 살짝 확대 → 원래 크기 (index.js가 --zoom 값을 바꿈) */
+
 .panel-bg {
   position: absolute;
   inset: 0;
@@ -39,7 +33,7 @@ body.home {
   will-change: transform;
 }
 
-/* 글씨가 잘 보이도록 아래쪽을 어둡게 */
+
 .panel::after {
   content: '';
   position: absolute;
@@ -50,7 +44,7 @@ body.home {
   pointer-events: none;
 }
 
-/* 문구: 스크롤에 따라 나타났다 사라짐 (--fade, --shift) */
+
 .panel-copy {
   position: relative;
   z-index: 2;
@@ -80,7 +74,7 @@ body.home {
 }
 .panel-copy--right .panel-sub { margin-left: auto; }
 
-/* ---------- 1. 첫 화면 ---------- */
+
 .panel--hero { align-items: center; }
 .panel--hero::after {
   background:
@@ -106,7 +100,7 @@ body.home {
   margin: 22px 0 0;
 }
 
-/* 페이지를 처음 열 때 한 번만: 제목이 살짝 크게 시작해서 자리 잡기 */
+
 .hero-title, .hero-sub { animation: heroIn 1.2s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
 .hero-sub { animation-delay: 0.35s; }
 @keyframes heroIn {
@@ -114,7 +108,7 @@ body.home {
   to   { opacity: 1; transform: scale(1);    filter: blur(0); }
 }
 
-/* ---------- 6. 마지막 화면: 코스 찾기 ---------- */
+
 .panel--cta {
   flex-direction: column;
   justify-content: flex-end;
@@ -152,7 +146,7 @@ body.home .site-footer {
   font-size: 0.8rem;
 }
 
-/* ---------- 오른쪽 단계 표시: 러닝 코스처럼 생긴 세로 선 ---------- */
+
 .route-nav {
   position: fixed;
   right: clamp(14px, 2.4vw, 32px);
@@ -206,7 +200,7 @@ body.home .site-footer {
 }
 .route-stops a:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
 
-/* ---------- 아래쪽 스크롤 안내 ---------- */
+
 .scroll-hint {
   position: fixed;
   left: 50%;
@@ -241,7 +235,7 @@ body.home .site-footer {
   pointer-events: none;
 }
 
-/* ---------- 모바일 ---------- */
+
 @media (max-width: 640px) {
   .panel-bg { background-image: var(--bg-sm, var(--bg)); }
   .panel-copy, .panel-copy--right { text-align: left; padding-right: 48px; }
@@ -252,7 +246,7 @@ body.home .site-footer {
   .route-stops a { width: 10px; height: 10px; }
 }
 
-/* ---------- 움직임 줄이기 설정을 켠 사용자 ---------- */
+
 @media (prefers-reduced-motion: reduce) {
   html.snap-page { scroll-behavior: auto; }
   .hero-title, .hero-sub, .scroll-hint svg { animation: none; }

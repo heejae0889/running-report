@@ -1,39 +1,29 @@
-// =============================================
-// AI 맞춤 코스 만들기
-//   ① 제미나이 : 설문 답을 보고 코스를 기획 → 들를 곳을 '장소 이름'으로 정함
-//   ② 카카오   : 장소 이름 → 정확한 좌표
-//   ③ TMAP     : 좌표 사이의 실제 걷는 길 → 경로 좌표, 실제 거리
-//   ④ 거리 확인: 원하는 거리와 많이 다르면 제미나이에게 한 번 더 요청
-// 키는 js/secrets.js (GitHub에 안 올라가는 파일)에서 읽습니다.
-// 만들어진 코스는 data/courses.json과 같은 모양이라, 레포트는 예시 코스와 똑같이 그립니다.
-// =============================================
+//   제미나이 - 설문 답을 보고 코스를 기획 => 들를 곳을 '장소 이름'으로 정함
+//   카카오 - 장소 이름 => 정확한 좌표
+//   TMAP - 좌표 사이의 실제 걷는 길 => 경로 좌표, 실제 거리
+//   거리 확인 - 원하는 거리와 많이 다르면 제미나이에게 한 번 더 요청
 
 const AI_KEYS = () => (typeof SECRETS !== 'undefined' ? SECRETS : {});
 const hasAiKeys = () => Boolean(AI_KEYS().GEMINI_API_KEY && AI_KEYS().TMAP_APP_KEY);
 const hasTmapKey = () => Boolean(AI_KEYS().TMAP_APP_KEY);
 
-// 원하는 거리와 25% 넘게 다르면 제미나이에게 다시 짜 달라고 요청
 // 첫 시도 포함 최대 5번까지 시도하고, 그래도 25% 안에 드는 코스가 없으면 가장 가까웠던 코스를 사용
 const DISTANCE_TOLERANCE = 0.25;
 const MAX_ATTEMPTS = 5;
 const MAX_RETRIES = MAX_ATTEMPTS - 1;
 
-// ---------- 메인: 설문 답 → 코스 ----------
-// onStep(text, percent, step): 진행 상황을 화면에 보여 줄 때 사용
-//   step: 'plan'(제미나이 구상) → 'place'(장소 찾기) → 'route'(길 계산) → 'done'
-//   percent: 0~100, 진행바를 얼마나 채울지
+// ---------- 메인 ----------
 async function buildAiCourse(params, onStep = () => {}) {
   const region = getRegion(params.region);
   const target = params.km || 5;
   const gap = (c) => Math.abs(c.distanceKm - target) / target;
 
-  // 첫 시도: 진행바 8% → 85%
   onStep('제미나이가 코스를 구상하고 있어요…', 8, 'plan');
   let plan = await askGeminiForPlan(params);
   let best = await planToCourse(plan, region, (text, frac, step) => onStep(text, 45 + frac * 40, step));
   const tried = [{ plan, km: best.distanceKm }];
 
-  // 다시 시도: 남은 진행바(86% → 96%)를 시도 횟수만큼 나눠서 사용
+  //남은 진행바는 시도 횟수만큼 나눠서 사용
   for (let attempt = 1; attempt <= MAX_RETRIES && gap(best) > DISTANCE_TOLERANCE; attempt++) {
     const from = 86 + ((attempt - 1) / MAX_RETRIES) * 10;
     const size = 10 / MAX_RETRIES;
@@ -56,7 +46,7 @@ async function buildAiCourse(params, onStep = () => {}) {
 function saveBuiltCourse(course) {
   try {
     sessionStorage.setItem('tripRunningCourse', JSON.stringify({ route: courseToRouteParam(course), course }));
-  } catch (e) { /* 저장이 막힌 브라우저면 레포트에서 TMAP으로 다시 그림 */ }
+  } catch (e) {  }
 }
 function readBuiltCourse(routeRaw) {
   try {
@@ -67,7 +57,7 @@ function readBuiltCourse(routeRaw) {
   }
 }
 
-// 공유 링크로 열었을 때: 저장된 들를 곳(좌표)으로 TMAP 경로만 다시 그리기
+// 공유 링크로 열었을 때
 async function rebuildCourseFromRoute(route, regionCode) {
   const region = getRegion(regionCode);
   const points = route.w.map(([name, lat, lng]) => ({ name, lat, lng }));
@@ -87,9 +77,7 @@ function courseToRouteParam(course) {
   });
 }
 
-// =============================================
-// ① 제미나이: 코스 기획
-// =============================================
+// 제미나이 프롬포트
 async function askGeminiForPlan(p, retry = null) {
   const region = getRegion(p.region);
   const lines = [
@@ -207,10 +195,7 @@ async function callGemini(prompt, schema) {
   throw new Error(`제미나이 오류 - ${lastError}`);
 }
 
-// =============================================
-// ② 카카오: 장소 이름 → 좌표
-// =============================================
-// report(text, frac, step): frac은 0~1 (장소 찾기 0~0.5, 길 계산 0.5~1)
+// 카카오
 async function planToCourse(plan, region, report = () => {}) {
   const points = [];
   const n = plan.waypoints.length;
@@ -242,7 +227,7 @@ function findPlace(query, region) {
     places.keywordSearch(query, (data, status) => {
       clearTimeout(timer);
       if (status !== kakao.maps.services.Status.OK) return resolve(null);
-      // 주소가 그 지역인 첫 번째 결과 (예: '강원특별자치도 강릉시 …'에 '강릉시'가 들어 있는지)
+      // 주소가 그 지역인 첫 번째 결과
       const addrKey = region.addr || region.name;
       const hit = data.find((d) => (d.road_address_name || d.address_name || '').includes(addrKey));
       resolve(hit ? { lat: Number(hit.y), lng: Number(hit.x), name: hit.place_name } : null);
@@ -253,9 +238,8 @@ function findPlace(query, region) {
   });
 }
 
-// =============================================
-// ③ TMAP: 좌표 사이의 실제 걷는 길
-// =============================================
+
+// TMAP
 async function routeThrough(points, type, region) {
   const start = points[0];
   const end = points[points.length - 1];
@@ -268,7 +252,7 @@ async function routeThrough(points, type, region) {
     path = [...path, ...path.slice(0, -1).reverse()];
     meters *= 2;
   } else if (type === '순환') {                                     // 마지막 장소 → 출발점으로 돌아오는 길을 따로 찾아 이어 붙이기
-    const back = await tmapPedestrian(end, start);                  // (출발=도착인 요청은 TMAP이 거부할 수 있어서 두 번에 나눔)
+    const back = await tmapPedestrian(end, start);                  
     path = [...path, ...back.path.slice(1)];
     meters += back.meters;
   }
@@ -313,7 +297,7 @@ async function tmapPedestrian(start, end, via = []) {
     throw new Error(`TMAP 길찾기 오류: ${msg}`);
   }
 
-  // LineString 좌표를 이어 붙이기 (TMAP은 [경도, 위도] 순서)
+  // LineString 좌표 잇기
   const path = [];
   data.features.forEach((f) => {
     if (f.geometry?.type !== 'LineString') return;

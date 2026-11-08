@@ -1,20 +1,8 @@
-// =============================================
 // 나의 러닝 레포트 페이지 스크립트
-//
-// 화면에 들어가는 내용과 데이터 출처
-//   코스·거리      : data/courses.json 예시 코스 (나중에 제미나이 + TMAP으로 교체)
-//   예상 시간      : 거리 × 목표 페이스
-//   칼로리         : 운동 강도(MET) × 몸무게 × 시간
-//   날씨           : Open-Meteo (키 필요 없음)
-//   쉬어 갈 곳·숙소: 카카오 장소 검색 (카카오 JavaScript 키)
-//   행사           : 한국관광공사 TourAPI (secrets.js의 TOUR_API_KEY, 없으면 예시 데이터)
-//   PDF 저장       : html2canvas(화면 캡처) + jsPDF(PDF 만들기)
-// 공통 함수(getParams, getRegion, loadJSON, pickCourse, loadKakaoMap, readBodyInfo 등)는 js/common.js 참고
-// =============================================
 
 const photo = (id, w = 1600) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=70`;
 
-// 여행지별 상단 사진 (설문의 여행지 카드와 같은 사진)
+// 여행지별 상단 사진
 const REGION_PHOTOS = {
   busan: '1638591751482-1a7d27fcea15',
   seoul: '1760000843601-2070baed2478',
@@ -25,20 +13,19 @@ const REGION_PHOTOS = {
 };
 
 // ---------- 계산에 쓰는 값 ----------
-// 목표 페이스 답변 → 1km당 분 (모르면 러닝 경험으로 추정)
 const PACE_MIN = { '7분 이상': 7.5, '6~7분': 6.5, '5~6분': 5.5, '5분 이내': 4.75 };
 const LEVEL_PACE = { '입문': 7.5, '보통': 6.5, '숙련': 5.5 };
 
-// 달리는 속도(km/h)별 운동 강도 MET (ACSM 신체활동 목록 기준)
+// 달리는 속도 별 운동 강도 
 const MET_TABLE = [
   [6.4, 6.0], [8.0, 8.3], [8.4, 9.0], [9.7, 9.8], [10.8, 10.5],
   [11.3, 11.0], [12.1, 11.8], [12.9, 12.3], [13.8, 12.8], [14.5, 14.5], [16.1, 16.0],
 ];
 
-// 시간대 답변 → 날씨를 볼 시각
+// 시간대 답변
 const TIME_HOURS = { '새벽·아침': [6, 7, 8], '낮': [12, 13, 14], '저녁': [17, 18, 19], '밤': [20, 21, 22] };
 
-// 날씨 코드(WMO) → 설명과 아이콘
+// 날씨 코드
 function weatherText(code) {
   if (code === 0) return ['맑음', '☀️'];
   if (code <= 2) return ['구름 조금', '🌤️'];
@@ -81,7 +68,7 @@ function calcKcal(weightKg, km, paceMin) {
   return Math.round(metForSpeed(60 / paceMin) * weightKg * hours);
 }
 
-// 콜백 방식인 카카오 장소 검색을 Promise로 (응답이 없으면 8초 뒤 빈 결과)
+// 콜백 방식인 카카오 장소 검색을 Promise로
 function placesSearch(method, query, options) {
   return new Promise((resolve) => {
     const timer = setTimeout(() => resolve([]), 8000);
@@ -108,28 +95,27 @@ const state = {
   map: null,
   places: null,
   openLabel: null,
-  pins: {},          // id → { position, label }
+  pins: {},          // id
   mapReady: null,    // 지도 준비가 끝나면 풀리는 Promise
   lastPinClick: 0,
 };
 
-// =============================================
 // 시작
-// =============================================
+
 document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
   const p = getParams();
   state.params = p;
 
-  // 설문을 거치지 않았으면 안내 화면 (밝은 배경이라 메뉴 막대도 밝게)
+  // 설문을 거치지 않았으면 안내 화면
   if (!p.region || !p.date || !getRegion(p.region)) {
     document.body.classList.add('header-light');
     $('emptyState').classList.remove('d-none');
     return;
   }
 
-  // 위쪽 메뉴 막대: 사진 위에서는 어두운 반투명, 사진을 지나면 밝은 반투명
+  // 위쪽 메뉴 막대
   const updateHeader = () => {
     const heroBottom = $('hero').getBoundingClientRect().bottom;
     document.body.classList.toggle('header-light', heroBottom <= 48);
@@ -143,7 +129,7 @@ async function init() {
   renderHeroBase();
   updateHeader();
 
-  // 1) 카카오 지도 SDK 먼저 (AI 코스의 장소 검색에도 필요)
+  // 1) 카카오 지도
   let kakaoOk = true;
   try {
     await loadKakaoMap();
@@ -152,7 +138,7 @@ async function init() {
     kakaoOk = false;
   }
 
-  // 2) 코스 정하기: 공유 링크의 코스 → AI 코스 → 예시 코스 순서로 시도
+  // 2) 코스 정하기
   state.course = await getCourse(p, kakaoOk);
   if (!state.course) {
     setMapStatus('코스 데이터를 불러오지 못했어요. Live Server로 열었는지 확인해 주세요.', true);
@@ -165,7 +151,7 @@ async function init() {
   renderFacts();
   renderStory();
 
-  // 3) 지도 · 날씨 · 행사는 서로 기다리지 않고 동시에
+  // 3) 지도 · 날씨 · 행사
   state.mapReady = kakaoOk ? initMap() : Promise.reject(new Error('카카오 SDK 없음'));
   loadWeather();
   loadEvents();
@@ -182,10 +168,8 @@ async function init() {
   }
 }
 
-// =============================================
 // 코스 정하기
-// =============================================
-// 지도 위 안내 문구 (done=true면 숨김)
+
 function setMapStatus(text, isError = false, done = false) {
   const box = $('mapStatus');
   box.classList.toggle('is-done', done);
@@ -194,7 +178,7 @@ function setMapStatus(text, isError = false, done = false) {
 }
 
 async function getCourse(p, kakaoOk) {
-  // 예시 코스 (키가 없거나 AI가 실패했을 때)
+  // 예시 코스
   const fallback = async (reason) => {
     try {
       const courses = await loadJSON('data/courses.json');
@@ -214,11 +198,11 @@ async function getCourse(p, kakaoOk) {
   const routeRaw = search.get('route');
   const aiNote = '';   // AI 코스는 따로 설명 문구를 붙이지 않음
 
-  // 설문에서 방금 만든 코스 → 그대로 사용 (다시 계산하지 않음)
+  // 설문에서 방금 만든 코스
   const built = routeRaw ? readBuiltCourse(routeRaw) : null;
   if (built) return { ...built, note: aiNote };
 
-  // 공유 링크로 열었으면, 링크에 담긴 들를 곳으로 같은 코스를 다시 그리기 (제미나이 호출 없음)
+  // 공유 링크로 열었으면, 링크에 담긴 들를 곳으로 같은 코스를 다시 그리기
   if (routeRaw && hasTmapKey()) {
     try {
       setMapStatus('공유받은 코스를 그리고 있어요…');
@@ -229,7 +213,7 @@ async function getCourse(p, kakaoOk) {
     }
   }
 
-  // 설문에서 AI 코스를 만들지 못했으면 예시 코스 (이유와 함께)
+  // 설문에서 코스를 만들지 못했으면 예시 코스
   if (search.get('course') === 'example') {
     let reason = '';
     try { reason = sessionStorage.getItem('tripRunningCourseError') || ''; } catch (e) { /* 무시 */ }
@@ -242,7 +226,6 @@ async function getCourse(p, kakaoOk) {
 
   try {
     const c = await buildAiCourse(p, (text) => setMapStatus(text));
-    // 새로고침하거나 공유해도 같은 코스가 나오도록 주소에 저장
     const url = new URL(location.href);
     url.searchParams.set('route', courseToRouteParam(c));
     history.replaceState(null, '', url);
@@ -267,9 +250,7 @@ function renderStory() {
   $('courseStory').innerHTML = html;
 }
 
-// =============================================
 // 1. 상단 요약
-// =============================================
 function renderHeroBase() {
   const p = state.params;
   const region = getRegion(p.region);
@@ -337,9 +318,7 @@ function renderFacts() {
     .join('');
 }
 
-// =============================================
 // 2. 지도
-// =============================================
 async function initMap() {
   await loadKakaoMap();
   const c = state.course;
@@ -349,21 +328,21 @@ async function initMap() {
   state.map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
   state.places = new kakao.maps.services.Places();
 
-  // 코스 선: 흰 테두리 + 주황 선을 겹쳐서 지도 위에서 잘 보이게
+  // 코스 선
   new kakao.maps.Polyline({ map: state.map, path, strokeWeight: 10, strokeColor: '#ffffff', strokeOpacity: 0.9 });
   const line = new kakao.maps.Polyline({ map: state.map, path, strokeWeight: 6, strokeColor: '#f07c2a', strokeOpacity: 1 });
 
-  // 예시 코스는 지도로 잰 실제 길이로 거리 갱신 (AI 코스는 TMAP 거리 그대로)
+  // 예시 코스는 지도로 잰 실제 길이로 거리 갱신
   const realKm = line.getLength() / 1000;
   if (c.source !== 'ai' && realKm > 0.1) {
     state.courseKm = Math.round(realKm * 10) / 10;
     renderStats();
   }
 
-  // AI 코스: 출발과 도착 사이에 들르는 곳
+  // AI 코스
   (c.waypoints || []).slice(1).forEach((w, i, arr) => {
     const isLastTurn = c.type === '왕복' && i === arr.length - 1;
-    if (c.type === '편도' && i === arr.length - 1) return; // 편도의 마지막은 도착(E)
+    if (c.type === '편도' && i === arr.length - 1) return;
     addPin(`via-${i}`, new kakao.maps.LatLng(w.lat, w.lng), isLastTurn ? '반' : i + 1, 'pin--via', isLastTurn ? `${w.name} (반환점)` : w.name);
   });
 
@@ -379,13 +358,13 @@ async function initMap() {
   path.forEach((pt) => bounds.extend(pt));
   state.map.setBounds(bounds, 40, 40, 40, 40);
 
-  // 지도 빈 곳을 누르면 이름표 닫기 (표시를 누른 직후의 클릭은 무시)
+  // 지도 빈 곳을 누르면 이름표 닫기
   kakao.maps.event.addListener(state.map, 'click', () => {
     if (Date.now() - (state.lastPinClick || 0) > 300) closeLabel();
   });
 }
 
-// 지도에 동그란 표시 추가 (누르면 이름표)
+// 지도에 동그란 표시 추가
 function addPin(id, position, text, cls, labelText) {
   const el = document.createElement('div');
   el.className = `pin ${cls}`;
@@ -415,7 +394,7 @@ function closeLabel() {
   state.openLabel = null;
 }
 
-// 코스 위를 50m 간격 점으로 촘촘하게 (장소가 코스에서 얼마나 떨어졌는지 계산용)
+// 코스 위를 50m 간격 점으로 촘촘하게
 function densePath() {
   const pts = [];
   let along = 0;
@@ -436,7 +415,6 @@ function densePath() {
   return pts;
 }
 
-// 장소 → 코스와의 최단 거리, 출발 후 몇 km 지점인지
 function nearestOnCourse(dense, lat, lng) {
   let best = { gap: Infinity, along: 0 };
   dense.forEach((pt) => {
@@ -446,9 +424,7 @@ function nearestOnCourse(dense, lat, lng) {
   return best;
 }
 
-// =============================================
-// 3. 쉬어 갈 곳 (편의점 · 카페 · 화장실 · 공원)
-// =============================================
+// 3. 쉬어 갈 곳
 async function loadRestSpots() {
   const dense = densePath();
 
@@ -469,7 +445,7 @@ async function loadRestSpots() {
     { key: '공원', run: (loc) => placesSearch('keywordSearch', '공원', { location: loc, radius: 350, sort: kakao.maps.services.SortBy.DISTANCE }) },
   ];
 
-  const found = new Map(); // 장소 id → 정보
+  const found = new Map(); // 장소 id
   await Promise.all(probes.flatMap((pt) => {
     const loc = new kakao.maps.LatLng(pt.lat, pt.lng);
     return TYPES.map(async (type) => {
@@ -486,7 +462,7 @@ async function loadRestSpots() {
     });
   }));
 
-  // 종류별로 코스에서 가장 가까운 2~3곳 → 출발부터 순서대로
+  // 종류별로 코스에서 가장 가까운 곳
   const pick = [];
   ['화장실', '편의점', '카페', '공원'].forEach((key) => {
     const limit = key === '카페' ? 2 : 3;
@@ -522,9 +498,7 @@ async function loadRestSpots() {
   bindPlaceButtons('#restList');
 }
 
-// =============================================
 // 4. 출발 지점 근처 숙소
-// =============================================
 async function loadStays() {
   const p = state.params;
   const start = state.course.start;
@@ -535,7 +509,6 @@ async function loadStays() {
     $('stayNote').textContent = '당일치기 일정이라 참고용으로 보여 드려요. 출발 지점에서 가까운 순서예요.';
   }
 
-  // 같은 건물의 '○○호텔 다이닝홀' 같은 부속 시설은 빼기
   const seen = new Set();
   const stays = list.filter((x) => {
     const base = x.place_name.split(' ')[0];
@@ -579,9 +552,7 @@ function bindPlaceButtons(selector) {
   });
 }
 
-// =============================================
-// 5. 날씨 (Open-Meteo) + 미세먼지 + 일출·일몰 + 옷차림 추천
-// =============================================
+// 5. 날씨 
 async function loadWeather() {
   const p = state.params;
   const { lat, lng } = state.course.start;
@@ -592,7 +563,6 @@ async function loadWeather() {
   const target = new Date(p.date + 'T00:00:00');
   const daysAhead = Math.round((target - today) / 86400000);
 
-  // 15일 안이면 예보, 그보다 멀면 작년 같은 날 기록
   let url;
   let isForecast = true;
   const common = `latitude=${lat}&longitude=${lng}&timezone=Asia%2FSeoul&wind_speed_unit=ms&daily=sunrise,sunset`;
@@ -606,7 +576,7 @@ async function loadWeather() {
     url = `https://archive-api.open-meteo.com/v1/archive?${common}&hourly=temperature_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,relative_humidity_2m&start_date=${d}&end_date=${d}`;
   }
 
-  // 미세먼지는 날씨와 동시에 요청 (예보는 약 4일 뒤까지만 나옴)
+  // 미세먼지는 날씨와 동시에 요청
   const airPromise = loadAirQuality(lat, lng, p.date, hours);
 
   try {
@@ -626,8 +596,6 @@ async function loadWeather() {
     const humid = avg(pickHours(h.relative_humidity_2m));
     const code = Math.max(0, ...pickHours(h.weather_code));
     const [desc, icon] = weatherText(code);
-
-    // 일출 · 일몰 ('2026-11-17T06:52' → '06:52')
     const hhmm = (iso) => (iso ? iso.slice(11, 16) : null);
     const sunrise = hhmm(data.daily?.sunrise?.[0]);
     const sunset = hhmm(data.daily?.sunset?.[0]);
@@ -714,7 +682,7 @@ async function loadWeather() {
   }
 }
 
-// ---------- 미세먼지 (Open-Meteo 대기질, 환경부 등급 기준) ----------
+// ---------- 미세먼지 ----------
 const PM10_GRADES = [[30, '좋음'], [80, '보통'], [150, '나쁨'], [Infinity, '매우 나쁨']];
 const PM25_GRADES = [[15, '좋음'], [35, '보통'], [75, '나쁨'], [Infinity, '매우 나쁨']];
 const gradeOf = (value, table) => table.find(([max]) => value <= max)[1];
@@ -761,7 +729,6 @@ function renderAir(air) {
 const toMin = (hm) => { const [h, m] = hm.split(':').map(Number); return h * 60 + m; };
 const fromMin = (min) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
 
-// 달리는 시간 중에 어두운 때가 있는지 (시간대의 첫 시각 ~ 마지막 시각+1시간)
 function darkDuringRun(slot, hours, sunrise, sunset) {
   if (!sunrise || !sunset) return slot === '밤';
   const start = hours[0] * 60;
@@ -779,7 +746,7 @@ function sunNote(slot, hours, sunrise, sunset) {
   return '';
 }
 
-// ---------- 옷차림 추천 (체감 온도 기준 + 비 · 바람 · 어두움 · 햇빛) ----------
+// ---------- 옷차림 추천 ----------
 function outfitFor(feels, rainChance, wind, isDark, isSunnyDay) {
   let items;
   if (feels >= 22) items = [['👕', '반팔'], ['🩳', '반바지']];
@@ -802,9 +769,7 @@ function outfitFor(feels, rainChance, wind, isDark, isSunnyDay) {
 }
 
 
-// =============================================
-// 6. 근처 행사 (TourAPI, 키가 없으면 예시 데이터)
-// =============================================
+// 6. 근처 행사
 async function loadEvents() {
   const p = state.params;
   const start = state.course.start;
@@ -860,25 +825,21 @@ async function loadEvents() {
       </div>
     </li>`).join('');
 
-  // 지도가 준비되면 가까운 행사(5km 안)를 표시
   const addEventPins = () => events.filter((ev) => ev.dist <= 5).slice(0, 5).forEach((ev, i) => {
     addPin(`event-${i}`, new kakao.maps.LatLng(ev.lat, ev.lng), '행', 'pin--event', ev.title);
   });
   state.mapReady.then(addEventPins).catch(() => {});
 }
 
-// TourAPI 키: secrets.js(GitHub에 안 올라감) → config.js 순서로 찾기
-// Encoding 키(%2B 같은 글자가 섞인 것)를 넣어도 동작하도록 한 번 풀어서 사용
 function tourApiKey() {
   const raw = (typeof SECRETS !== 'undefined' && SECRETS.TOUR_API_KEY) || CONFIG.TOUR_API_KEY || '';
   if (!raw) return '';
   try { return raw.includes('%') ? decodeURIComponent(raw) : raw; } catch (e) { return raw; }
 }
 
-// 한국관광공사 TourAPI: 행사정보조회
+// 한국관광공사 TourAPI
 async function fetchTourEvents(date, lat, lng) {
   const day = date.replaceAll('-', '');
-  // 그날 진행 중인 행사도 포함하려고 120일 전에 시작한 것부터 받아서 날짜로 거르기
   const from = new Date(date + 'T00:00:00');
   from.setDate(from.getDate() - 120);
   const params = new URLSearchParams({
@@ -913,11 +874,8 @@ async function fetchTourEvents(date, lat, lng) {
     .sort((a, b) => a.dist - b.dist);
 }
 
-// =============================================
 // 7. 저장 · 공유 · 칼로리 입력
-// =============================================
 function bindActions() {
-  // 몸무게 입력 → 칼로리 다시 계산
   $('kcalForm').addEventListener('submit', (e) => {
     e.preventDefault();
     const w = Number($('kcalWeight').value);
@@ -927,8 +885,7 @@ function bindActions() {
     renderStats();
   });
 
-  // PDF로 저장: 레포트 영역을 그림으로 찍은 뒤, 가로 A4 폭(210mm)의 한 장짜리 PDF로 만들기
-  // (페이지를 나누면 지도나 목록이 중간에 잘려서, 화면처럼 길게 이어지는 한 장으로 저장)
+  // PDF 저장
   $('saveBtn').addEventListener('click', async () => {
     const btn = $('saveBtn');
     if (!window.html2canvas || !window.jspdf) {
@@ -947,8 +904,8 @@ function bindActions() {
         scale: Math.min(2, Math.max(1.5, window.devicePixelRatio || 1)),
       });
       const img = canvas.toDataURL('image/jpeg', 0.9);
-      const pageW = 210;                                   // mm
-      const pageH = (pageW * canvas.height) / canvas.width; // 내용 길이만큼
+      const pageW = 210;                                   
+      const pageH = (pageW * canvas.height) / canvas.width; 
       const pdf = new window.jspdf.jsPDF({ unit: 'mm', format: [pageW, pageH], orientation: pageH > pageW ? 'p' : 'l' });
       pdf.addImage(img, 'JPEG', 0, 0, pageW, pageH);
 
@@ -965,7 +922,7 @@ function bindActions() {
     }
   });
 
-  // 공유: 휴대폰은 공유 창, 컴퓨터는 링크 복사 (키·몸무게는 링크에 들어가지 않음)
+  // 공유
   $('shareBtn').addEventListener('click', async () => {
     const region = getRegion(state.params.region);
     const shareData = {
