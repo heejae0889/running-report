@@ -8,8 +8,8 @@
 const SECRETS = {
   // Google AI Studio에서 발급한 제미나이 API 키
   GEMINI_API_KEY: '',
-  // 사용할 제미나이 모델 (gemini-flash-latest = 가장 최신 Flash 모델을 자동으로 사용)
-  GEMINI_MODEL: 'gemini-flash-latest',
+  // 사용할 제미나이 모델 (붐비거나 없으면 course-ai.js의 예비 모델로 자동 전환)
+  GEMINI_MODEL: 'gemini-3.5-flash-lite',
 
   // SK open API > 내 앱 > 앱키(appKey) — TMAP 보행자 경로안내용
   TMAP_APP_KEY: '',

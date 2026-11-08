@@ -340,8 +340,13 @@ async function initMap() {
     addPin(`via-${i}`, new kakao.maps.LatLng(w.lat, w.lng), isLastTurn ? '반' : i + 1, 'pin--via', isLastTurn ? `${w.name} (반환점)` : w.name);
   });
 
-  addPin('start', path[0], 'S', 'pin--start', c.start.name);
-  addPin('end', path[path.length - 1], 'E', 'pin--end', c.end.name);
+  const sameStartEnd = distanceKm(c.start.lat, c.start.lng, c.end.lat, c.end.lng) < 0.03;
+  if (sameStartEnd) {
+    addPin('start', path[0], 'S', 'pin--start', `${c.start.name} (출발·도착)`);
+  } else {
+    addPin('start', path[0], 'S', 'pin--start', `${c.start.name} (출발)`);
+    addPin('end', path[path.length - 1], 'E', 'pin--end', `${c.end.name} (도착)`);
+  }
 
   const bounds = new kakao.maps.LatLngBounds();
   path.forEach((pt) => bounds.extend(pt));
@@ -460,6 +465,11 @@ async function loadRestSpots() {
     const limit = key === '카페' ? 2 : 3;
     [...found.values()].filter((x) => x.type === key).sort((a, b) => a.gap - b.gap).slice(0, limit).forEach((x) => pick.push(x));
   });
+  // 너무 많으면 코스에서 가까운 8곳만
+  if (pick.length > 8) {
+    pick.sort((a, b) => a.gap - b.gap);
+    pick.length = 8;
+  }
   pick.sort((a, b) => a.along - b.along);
 
   if (pick.length === 0) {
@@ -623,8 +633,8 @@ function runningTip(feels, rainChance, wind) {
   const tips = [];
   if (feels < 0) tips.push('영하의 추위예요. 장갑과 귀를 덮는 모자를 챙기고, 실내에서 충분히 몸을 풀고 나가세요.');
   else if (feels < 8) tips.push('쌀쌀해요. 얇은 겉옷을 입고 시작해서 몸이 데워지면 벗어 주세요.');
-  else if (feels < 18) tips.push('달리기 딱 좋은 기온이에요.');
-  else if (feels < 25) tips.push('조금 더울 수 있어요. 물을 챙기고 페이스를 살짝 늦춰 보세요.');
+  else if (feels < 21) tips.push('달리기 딱 좋은 기온이에요.');
+  else if (feels < 26) tips.push('조금 더울 수 있어요. 물을 챙기고 페이스를 살짝 늦춰 보세요.');
   else tips.push('더워요. 그늘이 있는 구간을 고르고, 중간중간 물을 꼭 마셔 주세요.');
   if (rainChance >= 60) tips.push('비 소식이 있으니 모자나 얇은 우비를 챙기세요.');
   if (wind >= 8) tips.push('바람이 강해요. 맞바람 구간에서는 무리하지 마세요.');

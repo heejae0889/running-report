@@ -92,8 +92,10 @@ ${lines.join('\n')}
 2. 각 waypoint의 query는 카카오맵에서 그대로 검색되는 실제 장소 이름이어야 해. (예: '광안리해수욕장', '민락수변공원', '여의나루역 2번출구') 지어낸 이름은 절대 쓰지 마.
 3. 산책로, 해변길, 강변길, 공원길처럼 사람이 달릴 수 있는 길로 이어지게 하고, 자동차 전용 도로나 출입이 제한된 곳은 피해.
 4. 장소 사이의 실제 거리를 생각해서 총 거리가 원하는 거리에 최대한 가깝게 해.
+   들를 곳은 0.5~1.5km 간격으로 촘촘하게 잡아서, 길찾기가 해변 산책로·강변길 같은 원하는 길을 벗어나 큰 도로로 돌아가지 않게 해.
 5. 입문자면 평탄한 길, 여럿이면 넓은 길, 밤이면 조명이 있는 길을 우선해.
-6. reasons에는 이 사람에게 이 코스가 맞는 이유를, tips에는 그날 이 코스를 달릴 때의 팁을 각각 2~3개, 한 문장씩 써.`;
+6. reasons에는 이 사람에게 이 코스가 맞는 이유를, tips에는 그날 이 코스를 달릴 때의 팁을 각각 2~3개, 한 문장씩 써.
+7. summary, reasons, tips에는 거리 숫자(km)를 쓰지 말고, 코스를 다시 짠 과정이나 이전 코스 이야기도 쓰지 마. 사용자에게 보여 줄 글이야.`;
 
   if (retry) {
     prompt += `\n\n[다시 짜기]\n직전에 짠 코스(${retry.previousPlan.waypoints.map((w) => w.query).join(' → ')}, ${retry.previousPlan.type})는 실제로 재 보니 ${retry.previousKm}km였어. 원하는 거리 ${p.km}km에 더 가깝도록 들를 곳을 바꾸거나 늘리거나 줄여서 다시 짜 줘.`;
@@ -135,44 +137,46 @@ ${lines.join('\n')}
   return plan;
 }
 
-async function callGemini(prompt, schema, model = AI_KEYS().GEMINI_MODEL || 'gemini-flash-latest') {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': AI_KEYS().GEMINI_API_KEY },
-    body: JSON.stringify({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: { responseMimeType: 'application/json', responseSchema: schema, temperature: 0.7 },
-    }),
-  });
-  const data = await res.json().catch(() => ({}));
+// 사용할 모델 순서: secrets.js에서 고른 모델 → 예비 모델들
+// (요청이 몰려서 503, 사용량 초과 429, 모델 없음 404, 응답이 너무 느리면 다음 모델로)
+const GEMINI_FALLBACK_MODELS = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-flash-latest'];
+const GEMINI_TIMEOUT_MS = 25000;
 
-  // 모델 이름이 바뀌어서 없다고 나오면, 쓸 수 있는 Flash 모델을 찾아 한 번 더
-  if (res.status === 404 && !callGemini.retried) {
-    callGemini.retried = true;
-    const alt = await findFlashModel();
-    if (alt && alt !== model) return callGemini(prompt, schema, alt);
+async function callGemini(prompt, schema) {
+  const models = [...new Set([AI_KEYS().GEMINI_MODEL, ...GEMINI_FALLBACK_MODELS].filter(Boolean))];
+  let lastError = '알 수 없는 오류';
+
+  for (const model of models) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), GEMINI_TIMEOUT_MS);
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+        method: 'POST',
+        signal: ctrl.signal,
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': AI_KEYS().GEMINI_API_KEY },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: { responseMimeType: 'application/json', responseSchema: schema, temperature: 0.7 },
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        lastError = `${model} (${res.status}): ${data?.error?.message || '오류'}`;
+        if ([401, 403].includes(res.status)) break;            // 키 문제는 다른 모델로 바꿔도 같음
+        console.warn('제미나이 다음 모델로 전환:', lastError);
+        continue;
+      }
+      const text = data?.candidates?.[0]?.content?.parts?.map((x) => x.text || '').join('') || '';
+      if (text) return text;
+      lastError = `${model}: 빈 답`;
+    } catch (e) {
+      lastError = e.name === 'AbortError' ? `${model}: 응답이 너무 늦음` : `${model}: ${e.message}`;
+      console.warn('제미나이 다음 모델로 전환:', lastError);
+    } finally {
+      clearTimeout(timer);
+    }
   }
-  if (!res.ok) throw new Error(`제미나이 오류 (${res.status}): ${data?.error?.message || '알 수 없는 오류'}`);
-
-  const text = data?.candidates?.[0]?.content?.parts?.map((x) => x.text || '').join('') || '';
-  if (!text) throw new Error('제미나이가 빈 답을 보냈어요.');
-  return text;
-}
-
-async function findFlashModel() {
-  try {
-    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=100', {
-      headers: { 'x-goog-api-key': AI_KEYS().GEMINI_API_KEY },
-    });
-    const data = await res.json();
-    const ok = (data.models || []).filter((m) => (m.supportedGenerationMethods || []).includes('generateContent'));
-    const flash = ok.find((m) => /flash/.test(m.name) && !/lite|image|tts|live|exp|preview/.test(m.name))
-      || ok.find((m) => /flash/.test(m.name));
-    return flash ? flash.name.replace('models/', '') : null;
-  } catch (e) {
-    return null;
-  }
+  throw new Error(`제미나이 오류 - ${lastError}`);
 }
 
 // =============================================

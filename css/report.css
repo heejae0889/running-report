@@ -179,7 +179,8 @@ body.report-page .site-footer { margin-top: 24px; }
 .map-legend {
   position: absolute;
   left: 12px;
-  bottom: 12px;
+  top: 12px;
+  max-width: calc(100% - 70px);   /* 오른쪽 확대·축소 버튼과 겹치지 않게 */
   z-index: 3;
   display: flex;
   flex-wrap: wrap;
