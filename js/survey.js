@@ -436,8 +436,56 @@ document.addEventListener('keydown', (e) => {
   if (buttons[n - 1]) buttons[n - 1].click();
 });
 
-// ---------- 마지막: 분석 중 → 레포트로 이동 ----------
-function finish() {
+// ---------- 마지막: 코스를 실제로 만들고 → 다 되면 레포트로 이동 ----------
+// 진행바·경로선은 실제 진행 상황(제미나이 구상 → 장소 찾기 → 길 계산)에 맞춰 차오릅니다.
+// 제미나이 답을 기다리는 동안에도 멈춰 보이지 않도록, 다음 단계 직전까지 아주 천천히 조금씩 움직여요.
+const STEP_ORDER = ['plan', 'place', 'route', 'done'];
+const CREEP_LIMIT = { plan: 42, place: 62, route: 84, done: 99 };   // 각 단계에서 기다리는 동안 갈 수 있는 최대치
+const progress = { value: 0, target: 0, limit: 0, raf: 0 };
+
+function setProgress(percent, step, text) {
+  progress.target = Math.max(progress.target, percent);
+  progress.limit = Math.max(progress.target, CREEP_LIMIT[step] || percent);
+  if (text) document.getElementById('analyzingStep').textContent = text;
+
+  // 단계 표시: 지난 단계는 체크, 지금 단계는 돌아가는 표시
+  const idx = STEP_ORDER.indexOf(step);
+  document.querySelectorAll('#analyzingSteps li').forEach((li) => {
+    const i = STEP_ORDER.indexOf(li.dataset.step);
+    li.classList.toggle('is-done', i < idx || (step === 'done' && percent >= 100));
+    li.classList.toggle('is-active', i === idx && !(step === 'done' && percent >= 100));
+  });
+  if (!progress.raf) progress.raf = requestAnimationFrame(drawProgress);
+}
+
+function drawProgress() {
+  // 기다리는 중이면 목표치를 한계까지 아주 천천히 올리기
+  if (progress.target < progress.limit) progress.target += (progress.limit - progress.target) * 0.006;
+  // 화면 값은 목표치를 부드럽게 따라가기
+  progress.value += (progress.target - progress.value) * 0.12;
+  if (Math.abs(progress.target - progress.value) < 0.05) progress.value = progress.target;
+
+  const pct = Math.min(100, progress.value);
+  document.getElementById('analyzingFill').style.width = `${pct}%`;
+  document.getElementById('analyzingPercent').textContent = Math.floor(pct);
+  document.getElementById('analyzingBar').setAttribute('aria-valuenow', Math.floor(pct));
+
+  // 위쪽 경로선: 진행한 만큼 주황 선이 그려지고, 동그라미(러너)가 따라감
+  const path = document.getElementById('analyzingPath');
+  const len = path.getTotalLength();
+  path.style.strokeDasharray = `${len}`;
+  path.style.strokeDashoffset = `${len * (1 - pct / 100)}`;
+  const pt = path.getPointAtLength(len * (pct / 100));
+  const runner = document.getElementById('analyzingRunner');
+  runner.setAttribute('cx', pt.x);
+  runner.setAttribute('cy', pt.y);
+
+  progress.raf = requestAnimationFrame(drawProgress);
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function finish() {
   // 숙박 안 함이면 여행 기간은 당일치기로 확정
   if (answers.stay === '숙박 안 함') answers.days = '당일치기';
 
@@ -450,13 +498,41 @@ function finish() {
   const region = QUESTIONS[0].options.find((o) => o.value === answers.region);
   if (region) setBackground(region.img);
 
-  const steps = ['여행지 정보를 정리하는 중…', '달리기 좋은 길을 찾는 중…', '그날 날씨를 확인하는 중…', '도착 지점 근처 맛집을 찾는 중…'];
-  const $step = document.getElementById('analyzingStep');
-  steps.forEach((text, i) => setTimeout(() => { $step.textContent = text; }, i * 650));
+  const minShow = sleep(1500);   // 너무 빨리 지나가면 무슨 일이 있었는지 안 보여서 최소 1.5초
+  let url = 'report.html?' + buildQuery(answers);
+  setProgress(4, 'plan', '여행지 정보를 정리하는 중…');
 
-  setTimeout(() => {
-    location.href = 'report.html?' + buildQuery(answers);
-  }, 2700);
+  if (hasAiKeys()) {
+    try {
+      await loadKakaoMap();
+      const course = await buildAiCourse({ ...answers }, (text, percent, step) => setProgress(percent, step, text));
+      saveBuiltCourse(course);
+      url += '&route=' + encodeURIComponent(courseToRouteParam(course));
+    } catch (e) {
+      console.error(e);
+      saveCourseError(`AI 코스를 만들지 못해 예시 코스를 보여 드려요. (${e.message})`);
+      setProgress(90, 'done', 'AI 코스를 만들지 못해서 예시 코스로 준비할게요…');
+      url += '&course=example';
+    }
+  } else {
+    // 키가 없으면 예시 코스로 (단계만 차례대로 보여 주기)
+    saveCourseError('js/secrets.js에 제미나이·TMAP 키를 넣으면 AI 맞춤 코스를 만들어요. 지금은 예시 코스예요.');
+    setProgress(30, 'place', '예시 코스를 고르는 중…');
+    await sleep(500);
+    setProgress(70, 'route', '예시 코스를 지도에 맞추는 중…');
+    await sleep(500);
+    url += '&course=example';
+  }
+
+  await minShow;
+  setProgress(100, 'done', '레포트를 여는 중…');
+  document.getElementById('analyzing').classList.add('is-complete');
+  await sleep(700);
+  location.href = url;
+}
+
+function saveCourseError(msg) {
+  try { sessionStorage.setItem('tripRunningCourseError', msg); } catch (e) { /* 무시 */ }
 }
 
 // ---------- 시작 ----------

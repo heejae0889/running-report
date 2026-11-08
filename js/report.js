@@ -197,8 +197,15 @@ async function getCourse(p, kakaoOk) {
 
   if (!kakaoOk) return fallback('지도를 불러오지 못해 예시 코스를 보여 드려요.');
 
+  const search = new URLSearchParams(location.search);
+  const routeRaw = search.get('route');
+  const aiNote = '제미나이가 설문 답에 맞춰 짠 코스예요. 경로선은 TMAP 보행자 길찾기로 실제 길을 따라 그렸어요.';
+
+  // 설문에서 방금 만든 코스 → 그대로 사용 (다시 계산하지 않음)
+  const built = routeRaw ? readBuiltCourse(routeRaw) : null;
+  if (built) return { ...built, note: aiNote };
+
   // 공유 링크로 열었으면, 링크에 담긴 들를 곳으로 같은 코스를 다시 그리기 (제미나이 호출 없음)
-  const routeRaw = new URLSearchParams(location.search).get('route');
   if (routeRaw && hasTmapKey()) {
     try {
       setMapStatus('공유받은 코스를 그리고 있어요…');
@@ -207,6 +214,13 @@ async function getCourse(p, kakaoOk) {
     } catch (e) {
       console.error(e);
     }
+  }
+
+  // 설문에서 AI 코스를 만들지 못했으면 예시 코스 (이유와 함께)
+  if (search.get('course') === 'example') {
+    let reason = '';
+    try { reason = sessionStorage.getItem('tripRunningCourseError') || ''; } catch (e) { /* 무시 */ }
+    return fallback(reason || '예시 코스를 보여 드려요.');
   }
 
   if (!hasAiKeys()) {
@@ -219,7 +233,7 @@ async function getCourse(p, kakaoOk) {
     const url = new URL(location.href);
     url.searchParams.set('route', courseToRouteParam(c));
     history.replaceState(null, '', url);
-    return { ...c, note: '제미나이가 설문 답에 맞춰 짠 코스예요. 경로선은 TMAP 보행자 길찾기로 실제 길을 따라 그렸어요.' };
+    return { ...c, note: aiNote };
   } catch (e) {
     console.error(e);
     return fallback(`AI 코스를 만들지 못해 예시 코스를 보여 드려요. (${e.message})`);

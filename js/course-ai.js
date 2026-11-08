@@ -16,23 +16,24 @@ const hasTmapKey = () => Boolean(AI_KEYS().TMAP_APP_KEY);
 const DISTANCE_TOLERANCE = 0.25;
 
 // ---------- 메인: 설문 답 → 코스 ----------
-// onStep(text): 진행 상황을 화면에 보여 줄 때 사용
+// onStep(text, percent, step): 진행 상황을 화면에 보여 줄 때 사용
+//   step: 'plan'(제미나이 구상) → 'place'(장소 찾기) → 'route'(길 계산) → 'done'
+//   percent: 0~100, 진행바를 얼마나 채울지
 async function buildAiCourse(params, onStep = () => {}) {
   const region = getRegion(params.region);
   const target = params.km || 5;
 
-  onStep('제미나이가 코스를 구상하고 있어요…');
+  onStep('제미나이가 코스를 구상하고 있어요…', 8, 'plan');
   let plan = await askGeminiForPlan(params);
-  onStep('들를 곳의 위치를 찾고 있어요…');
-  let course = await planToCourse(plan, region);
+  let course = await planToCourse(plan, region, (text, frac, step) => onStep(text, 45 + frac * 40, step));
 
   // 거리가 많이 다르면 한 번 더 (더 가까운 쪽을 사용)
   const off = Math.abs(course.distanceKm - target) / target;
   if (off > DISTANCE_TOLERANCE) {
-    onStep(`거리를 맞추고 있어요… (${course.distanceKm}km → 목표 ${target}km)`);
+    onStep(`거리를 맞추고 있어요… (${course.distanceKm}km → 목표 ${target}km)`, 86, 'plan');
     try {
       const plan2 = await askGeminiForPlan(params, { previousKm: course.distanceKm, previousPlan: plan });
-      const course2 = await planToCourse(plan2, region);
+      const course2 = await planToCourse(plan2, region, (text, frac, step) => onStep(text, 90 + frac * 6, step));
       if (Math.abs(course2.distanceKm - target) < Math.abs(course.distanceKm - target)) {
         plan = plan2;
         course = course2;
@@ -41,7 +42,23 @@ async function buildAiCourse(params, onStep = () => {}) {
       console.warn('두 번째 시도 실패, 첫 번째 코스를 사용', e);
     }
   }
+  onStep('코스가 완성됐어요!', 97, 'done');
   return course;
+}
+
+// 설문 페이지에서 만든 코스를 레포트 페이지로 넘기기 (이 탭에만 잠깐 저장)
+function saveBuiltCourse(course) {
+  try {
+    sessionStorage.setItem('tripRunningCourse', JSON.stringify({ route: courseToRouteParam(course), course }));
+  } catch (e) { /* 저장이 막힌 브라우저면 레포트에서 TMAP으로 다시 그림 */ }
+}
+function readBuiltCourse(routeRaw) {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem('tripRunningCourse'));
+    return saved && saved.route === routeRaw ? saved.course : null;
+  } catch (e) {
+    return null;
+  }
 }
 
 // 공유 링크로 열었을 때: 저장된 들를 곳(좌표)으로 TMAP 경로만 다시 그리기
@@ -182,18 +199,24 @@ async function callGemini(prompt, schema) {
 // =============================================
 // ② 카카오: 장소 이름 → 좌표
 // =============================================
-async function planToCourse(plan, region) {
+// report(text, frac, step): frac은 0~1 (장소 찾기 0~0.5, 길 계산 0.5~1)
+async function planToCourse(plan, region, report = () => {}) {
   const points = [];
-  for (const wp of plan.waypoints) {
+  const n = plan.waypoints.length;
+  for (let i = 0; i < n; i++) {
+    const wp = plan.waypoints[i];
+    report(`'${wp.name || wp.query}' 위치를 찾고 있어요…`, (i / n) * 0.5, 'place');
     const found = await findPlace(wp.query, region) || await findPlace(`${region.name} ${wp.query}`, region);
     if (found) points.push({ name: wp.name || wp.query, lat: found.lat, lng: found.lng });
     else console.warn('장소를 찾지 못해 건너뜀:', wp.query);
   }
+  report('실제 걷는 길을 계산하고 있어요…', 0.55, 'route');
   // 같은 곳이 연달아 나오면 하나로
   const uniq = points.filter((pt, i) => i === 0 || distanceKm(pt.lat, pt.lng, points[i - 1].lat, points[i - 1].lng) > 0.05);
   if (uniq.length < 2) throw new Error('제미나이가 고른 장소를 지도에서 찾지 못했어요.');
 
   const course = await routeThrough(uniq, plan.type, region);
+  report(`길 계산 완료: ${course.distanceKm}km`, 1, 'route');
   course.name = plan.courseName;
   course.description = plan.summary;
   course.reasons = plan.reasons || [];
