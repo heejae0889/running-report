@@ -33,12 +33,15 @@ function getParams() {
   const p = new URLSearchParams(location.search);
   return {
     region: p.get('region'),               // 'busan' | 'seoul' | 'jeju'
+    date: p.get('date'),                   // 'YYYY-MM-DD' (러닝할 날)
+    stay: p.get('stay'),                   // '숙박함' | '숙박 안 함'
+    days: p.get('days'),                   // '당일치기' | '1박 2일' | '2박 3일' | '3박 이상'
+    time: p.get('time'),                   // '새벽·아침' | '낮' | '저녁' | '밤'
+    group: p.get('group'),                 // '혼자' | '2명' | '3~4명' | '5명 이상'
+    level: p.get('level'),                 // '입문' | '보통' | '숙련'
+    pace: p.get('pace'),                   // '7분 이상' | '6~7분' | '5~6분' | '5분 이내' | '모름' (1km당)
     km: p.get('km') ? Number(p.get('km')) : null,
-    date: p.get('date'),                   // 'YYYY-MM-DD'
-    level: p.get('level'),                 // '입문' | '보통' | '숙련' (선택 질문)
-    scenery: p.get('scenery'),             // '바다' | '강변' | '도심' | '공원' | '산책로' (선택 질문)
-    time: p.get('time'),                   // '아침' | '낮' | '저녁' (선택 질문)
-    after: p.get('after'),                 // '식사' | '카페' | '관광' (선택 질문)
+    scenery: p.get('scenery'),             // '바다' | '강·호수' | '도심 야경' | '공원·숲' | '산·언덕'
   };
 }
 

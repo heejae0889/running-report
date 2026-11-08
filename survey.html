@@ -13,44 +13,47 @@
   <link href="css/common.css" rel="stylesheet" />
   <link href="css/survey.css" rel="stylesheet" />
 </head>
-<body>
+<body class="survey-page overlay-header">
   <header id="site-header"></header>
 
-  <main class="container survey-wrap">
-    <!-- 상단 제목 -->
-    <section class="survey-head text-center">
-      <h1 class="survey-title">러닝 코스 찾기</h1>
-      <p class="survey-sub">몇 가지 질문에 답하면 나만의 러닝 레포트를 만들어 드려요.</p>
-    </section>
+  <!-- 배경 사진: 질문마다 바뀌고, 두 장을 겹쳐서 부드럽게 전환합니다 -->
+  <div class="survey-bg" aria-hidden="true">
+    <div class="survey-bg-layer is-active" id="bgA"></div>
+    <div class="survey-bg-layer" id="bgB"></div>
+  </div>
 
-    <!-- 진행 상태: '1 / 7' + 진행바 -->
-    <section class="survey-progress" id="progressArea">
-      <span class="progress-count"><b id="currentNum">1</b> / <span id="totalNum">7</span></span>
-      <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-        <div class="progress-fill" id="progressFill"></div>
+  <main class="survey-stage">
+    <!-- 질문 카드 -->
+    <section class="glass-card question-card" id="questionCard" aria-live="polite">
+      <!-- 진행 상태: 러닝 코스 모양 진행선 + '3 / 10' -->
+      <div class="survey-progress">
+        <div class="route-line" aria-hidden="true">
+          <div class="route-line-fill" id="progressFill"></div>
+          <div class="route-runner" id="progressRunner"></div>
+        </div>
+        <span class="progress-count" id="progressCount">1 / 10</span>
       </div>
-    </section>
 
-    <!-- 질문 카드: survey.js가 질문마다 내용을 바꿔 끼웁니다 -->
-    <section class="question-card card-soft" id="questionCard">
       <div id="questionBody"></div>
 
       <div class="question-footer">
-        <button type="button" class="btn btn-outline-prev" id="prevBtn">‹ 이전</button>
-        <button type="button" class="btn btn-navy btn-next d-none" id="nextBtn">다음 ›</button>
+        <button type="button" class="btn-ghost" id="prevBtn">이전</button>
+        <button type="button" class="btn-next d-none" id="nextBtn">다음</button>
       </div>
     </section>
 
     <!-- 분석 중 화면 (마지막 질문 뒤에 잠깐 표시) -->
-    <section class="analyzing card-soft d-none" id="analyzing">
-      <div class="runner" aria-hidden="true">🏃</div>
-      <h2 class="analyzing-title">맞춤 레포트를 만드는 중이에요</h2>
-      <p class="analyzing-step" id="analyzingStep">코스를 고르는 중…</p>
-      <div class="progress-track mt-3"><div class="progress-fill analyzing-fill"></div></div>
+    <section class="glass-card analyzing d-none" id="analyzing" aria-live="polite">
+      <div class="analyzing-route" aria-hidden="true">
+        <svg viewBox="0 0 240 80" width="240" height="80">
+          <path class="analyzing-path-bg" d="M10 60 C 50 10, 90 10, 120 40 S 190 75, 230 20" />
+          <path class="analyzing-path" d="M10 60 C 50 10, 90 10, 120 40 S 190 75, 230 20" />
+        </svg>
+      </div>
+      <h2 class="analyzing-title">나만의 러닝 코스를 만드는 중이에요</h2>
+      <p class="analyzing-step" id="analyzingStep">여행지 정보를 정리하는 중…</p>
     </section>
   </main>
-
-  <footer id="site-footer"></footer>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="js/config.js"></script>

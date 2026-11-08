@@ -15,20 +15,6 @@ body.home {
   color: #fff;
 }
 
-/* ---------- 헤더: 사진 위에 떠 있는 반투명 막대 ---------- */
-body.home .site-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 50;
-  background: rgba(0, 0, 0, 0.28);
-  -webkit-backdrop-filter: saturate(180%) blur(18px);
-  backdrop-filter: saturate(180%) blur(18px);
-}
-body.home .site-header .navbar { padding-top: 6px !important; padding-bottom: 6px !important; }
-body.home .site-header .navbar-brand { font-size: 1rem; }
-
 /* ---------- 화면 한 장 ---------- */
 .panel {
   position: relative;

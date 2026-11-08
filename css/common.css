@@ -35,6 +35,8 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  word-break: keep-all;      /* 한국어: 단어 중간에서 줄바꿈하지 않기 */
+  overflow-wrap: anywhere;
 }
 
 main { flex: 1; }
@@ -52,6 +54,20 @@ main { flex: 1; }
 .site-header .nav-link { color: rgba(255, 255, 255, 0.75); }
 .site-header .nav-link:hover,
 .site-header .nav-link.active { color: #fff; }
+
+/* 사진 배경 페이지(시작 화면, 설문)에서 쓰는 반투명 헤더: <body class="overlay-header"> */
+body.overlay-header .site-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.28);
+  -webkit-backdrop-filter: saturate(180%) blur(18px);
+  backdrop-filter: saturate(180%) blur(18px);
+}
+body.overlay-header .site-header .navbar { padding-top: 6px !important; padding-bottom: 6px !important; }
+body.overlay-header .site-header .navbar-brand { font-size: 1rem; }
 
 .site-footer {
   color: var(--color-muted);
