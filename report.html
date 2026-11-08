@@ -23,7 +23,7 @@
     <a class="btn-primary-run" href="survey.html">코스 찾기</a>
   </main>
 
-  <!-- ===== 레포트 본문 (이미지로 저장할 때 이 영역을 캡처) ===== -->
+  <!-- ===== 레포트 본문 (PDF로 저장할 때 이 영역을 캡처) ===== -->
   <main id="report" class="report d-none">
 
     <!-- 1. 상단 요약: 날짜 · 코스 이름 · 거리 / 시간 / 칼로리 -->
@@ -134,7 +134,7 @@
   <div class="action-bar d-none" id="actionBar" data-html2canvas-ignore>
     <button type="button" class="btn-action" id="saveBtn">
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 19h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      이미지로 저장
+      PDF로 저장
     </button>
     <button type="button" class="btn-action btn-action--primary" id="shareBtn">
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4M18 5a2.5 2.5 0 11-.001 0zM6 12a2.5 2.5 0 11-.001 0zM18 19a2.5 2.5 0 11-.001 0z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -147,8 +147,9 @@
   <footer id="site-footer"></footer>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <!-- 레포트 이미지 저장 -->
+  <!-- 레포트 PDF 저장: 화면을 그림으로 찍고(html2canvas) → PDF로 만들기(jsPDF) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="js/config.js"></script>
   <script src="js/common.js"></script>
   <script src="js/report.js"></script>

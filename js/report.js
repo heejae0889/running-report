@@ -8,6 +8,7 @@
 //   날씨           : Open-Meteo (키 필요 없음)
 //   쉬어 갈 곳·숙소: 카카오 장소 검색 (카카오 JavaScript 키)
 //   행사           : 한국관광공사 TourAPI (config.js의 TOUR_API_KEY, 없으면 예시 데이터)
+//   PDF 저장       : html2canvas(화면 캡처) + jsPDF(PDF 만들기)
 // 공통 함수(getParams, getRegion, loadJSON, pickCourse, loadKakaoMap, readBodyInfo 등)는 js/common.js 참고
 // =============================================
 
@@ -660,10 +661,16 @@ function bindActions() {
     renderStats();
   });
 
-  // 이미지로 저장
+  // PDF로 저장: 레포트 영역을 그림으로 찍은 뒤, 가로 A4 폭(210mm)의 한 장짜리 PDF로 만들기
+  // (페이지를 나누면 지도나 목록이 중간에 잘려서, 화면처럼 길게 이어지는 한 장으로 저장)
   $('saveBtn').addEventListener('click', async () => {
     const btn = $('saveBtn');
+    if (!window.html2canvas || !window.jspdf) {
+      toast('PDF 기능을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.');
+      return;
+    }
     btn.disabled = true;
+    toast('PDF를 만드는 중이에요…');
     closeLabel();
     const report = $('report');
     report.classList.add('is-capturing');
@@ -671,22 +678,21 @@ function bindActions() {
       const canvas = await html2canvas(report, {
         useCORS: true,
         backgroundColor: '#eef0f3',
-        scale: Math.min(2, window.devicePixelRatio || 1),
+        scale: Math.min(2, Math.max(1.5, window.devicePixelRatio || 1)),
       });
-      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
-      if (!blob) throw new Error('이미지 만들기 실패');
+      const img = canvas.toDataURL('image/jpeg', 0.9);
+      const pageW = 210;                                   // mm
+      const pageH = (pageW * canvas.height) / canvas.width; // 내용 길이만큼
+      const pdf = new window.jspdf.jsPDF({ unit: 'mm', format: [pageW, pageH], orientation: pageH > pageW ? 'p' : 'l' });
+      pdf.addImage(img, 'JPEG', 0, 0, pageW, pageH);
+
       const region = getRegion(state.params.region);
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `트립런닝_${region.name}_${state.params.date}.png`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-      toast('레포트 이미지를 저장했어요.');
+      pdf.setProperties({ title: `${region.name} 러닝 레포트 · 트립 런닝` });
+      pdf.save(`트립런닝_${region.name}_${state.params.date}.pdf`);
+      toast('레포트를 PDF로 저장했어요.');
     } catch (e) {
       console.error(e);
-      toast('이미지로 저장하지 못했어요. 화면 캡처 기능을 이용해 주세요.');
+      toast('PDF로 저장하지 못했어요. 잠시 뒤 다시 시도해 주세요.');
     } finally {
       report.classList.remove('is-capturing');
       btn.disabled = false;
