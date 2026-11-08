@@ -509,6 +509,18 @@ body.report-page .site-footer { margin-top: 24px; }
   outline-offset: 2px;
 }
 
+/* 평소엔 반투명, 마우스를 올리거나 키보드로 고르면 불투명 (마우스가 있는 기기에서만) */
+@media (hover: hover) {
+  .action-bar {
+    opacity: 0.4;
+    transition: opacity 0.25s ease;
+  }
+  .action-bar:hover,
+  .action-bar:focus-within {
+    opacity: 1;
+  }
+}
+
 .toast-msg {
   position: fixed;
   left: 50%;
