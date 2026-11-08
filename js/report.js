@@ -122,16 +122,26 @@ async function init() {
   const p = getParams();
   state.params = p;
 
-  // 설문을 거치지 않았으면 안내 화면
+  // 설문을 거치지 않았으면 안내 화면 (밝은 배경이라 메뉴 막대도 밝게)
   if (!p.region || !p.date || !getRegion(p.region)) {
+    document.body.classList.add('header-light');
     $('emptyState').classList.remove('d-none');
     return;
   }
+
+  // 위쪽 메뉴 막대: 사진 위에서는 어두운 반투명, 사진을 지나면 밝은 반투명
+  const updateHeader = () => {
+    const heroBottom = $('hero').getBoundingClientRect().bottom;
+    document.body.classList.toggle('header-light', heroBottom <= 48);
+  };
+  window.addEventListener('scroll', updateHeader, { passive: true });
+  window.addEventListener('resize', updateHeader);
   $('report').classList.remove('d-none');
   $('actionBar').classList.remove('d-none');
 
   bindActions();
   renderHeroBase();
+  updateHeader();
 
   // 1) 카카오 지도 SDK 먼저 (AI 코스의 장소 검색에도 필요)
   let kakaoOk = true;

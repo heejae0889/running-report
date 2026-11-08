@@ -12,7 +12,7 @@ body.report-page .site-footer { margin-top: 24px; }
 /* ---------- 설문 없이 들어왔을 때 ---------- */
 .report-empty {
   max-width: 520px;
-  margin: 18vh auto;
+  margin: calc(18vh + 48px) auto 18vh;
   padding: 0 24px;
   text-align: center;
 }
@@ -48,7 +48,7 @@ body.report-page .site-footer { margin-top: 24px; }
   position: relative;
   max-width: 1040px;
   margin: 0 auto;
-  padding: clamp(56px, 10vh, 96px) clamp(20px, 4vw, 40px) 32px;
+  padding: clamp(96px, 14vh, 136px) clamp(20px, 4vw, 40px) 32px;   /* 위쪽 반투명 메뉴 막대만큼 여유 */
 }
 .hero-when {
   font-size: 1rem;

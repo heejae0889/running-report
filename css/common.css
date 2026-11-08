@@ -68,6 +68,19 @@ body.overlay-header .site-header {
 }
 body.overlay-header .site-header .navbar { padding-top: 6px !important; padding-bottom: 6px !important; }
 body.overlay-header .site-header .navbar-brand { font-size: 1rem; }
+body.overlay-header .site-header,
+body.overlay-header .site-header .navbar-brand,
+body.overlay-header .site-header .nav-link { transition: background-color 0.3s ease, color 0.3s ease; }
+
+/* 밝은 내용 위로 스크롤했을 때: 밝은 반투명 막대 + 어두운 글씨 (레포트 페이지) */
+body.overlay-header.header-light .site-header {
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+}
+body.overlay-header.header-light .site-header .navbar-brand { color: var(--color-text); }
+body.overlay-header.header-light .site-header .nav-link { color: rgba(31, 41, 55, 0.65); }
+body.overlay-header.header-light .site-header .nav-link:hover,
+body.overlay-header.header-light .site-header .nav-link.active { color: var(--color-text); }
 
 .site-footer {
   color: var(--color-muted);
