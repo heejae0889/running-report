@@ -111,7 +111,7 @@ function renderLayout() {
     header.className = 'site-header';
     header.innerHTML = `
       <nav class="navbar navbar-expand container py-2">
-        <a class="navbar-brand" href="index.html">Go<span class="brand-dot">!</span>투어런닝</a>
+        <a class="navbar-brand" href="index.html">트립 런닝</a>
         <ul class="navbar-nav ms-auto">
           ${nav.map((n) => `<li class="nav-item"><a class="nav-link ${page === n.href ? 'active' : ''}" href="${n.href}">${n.label}</a></li>`).join('')}
         </ul>
@@ -120,7 +120,7 @@ function renderLayout() {
   const footer = document.getElementById('site-footer');
   if (footer) {
     footer.className = 'site-footer';
-    footer.innerHTML = `<div class="container text-center">© 2026 AI소프트웨어학부 23팀 · 웹프로그래밍 팀 프로젝트</div>`;
+    footer.innerHTML = `<div class="container text-center">© 2026 트립 런닝 · AI소프트웨어학부 23팀 웹프로그래밍 팀 프로젝트 · 사진 Unsplash</div>`;
   }
 }
 
