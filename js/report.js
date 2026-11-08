@@ -661,6 +661,25 @@ async function loadWeather() {
 
       <div class="wx-rows">
         <section class="wx-row">
+          <h3 class="wx-label">시간별</h3>
+          <div class="wx-body">
+            <ol class="hourly" aria-label="시간별 날씨">
+              ${hours.map((i) => {
+                const [hDesc, hIcon] = weatherText(h.weather_code?.[i] ?? 0);
+                const rain = isForecast
+                  ? `${Math.round(h.precipitation_probability?.[i] ?? 0)}%`
+                  : `${(h.precipitation?.[i] ?? 0).toFixed(1)}mm`;
+                return `<li>
+                  <span class="hr-time">${i}시</span>
+                  <span class="hr-icon" title="${hDesc}" aria-label="${hDesc}">${hIcon}</span>
+                  <span class="hr-temp">${Math.round(h.temperature_2m?.[i] ?? 0)}°</span>
+                  <span class="hr-rain">💧${rain}</span>
+                </li>`;
+              }).join('')}
+            </ol>
+          </div>
+        </section>
+        <section class="wx-row">
           <h3 class="wx-label">공기</h3>
           <div class="wx-body">${renderAir(air)}</div>
         </section>
@@ -672,7 +691,10 @@ async function loadWeather() {
                 <span><span aria-hidden="true">🌅</span> 일출 <b>${sunrise}</b></span>
                 <span><span aria-hidden="true">🌇</span> 일몰 <b>${sunset}</b></span>
               </div>
-              <p class="wx-note">${sunNote(slot, hours, sunrise, sunset)}${isForecast ? '' : ' (작년 기준)'}</p>` : '<p class="wx-note">일출·일몰 정보를 불러오지 못했어요.</p>'}
+              ${(() => {
+                const note = [sunNote(slot, hours, sunrise, sunset), isForecast ? '' : '(작년 기준)'].filter(Boolean).join(' ');
+                return note ? `<p class="wx-note">${note}</p>` : '';
+              })()}` : '<p class="wx-note">일출·일몰 정보를 불러오지 못했어요.</p>'}
           </div>
         </section>
         <section class="wx-row">
@@ -684,8 +706,6 @@ async function loadWeather() {
           </div>
         </section>
       </div>
-
-      <p class="weather-tip">${runningTip(feels, rainChance, wind)}</p>
     `;
   } catch (e) {
     console.error(e);
@@ -724,18 +744,17 @@ function renderAir(air) {
   const g25 = gradeOf(air.pm25, PM25_GRADES);
   const order = ['좋음', '보통', '나쁨', '매우 나쁨'];
   const worst = order[Math.max(order.indexOf(g10), order.indexOf(g25))];
+  // 나쁠 때만 경고 문구
   const note = {
-    '좋음': '공기가 깨끗해요. 마음껏 달려도 좋아요.',
-    '보통': '달리기에 무리 없는 공기예요.',
-    '나쁨': '공기가 나빠요. 거리를 줄이고 강도를 낮추거나 마스크를 챙기세요.',
-    '매우 나쁨': '공기가 매우 나빠요. 이날은 실내 운동을 추천해요.',
-  }[worst];
+    '나쁨': '마스크를 챙기고, 거리와 강도를 줄이는 게 좋아요.',
+    '매우 나쁨': '실외 러닝보다 실내 운동을 추천해요.',
+  }[worst] || '';
   return `
     <div class="aq-pills">
       <span class="aq-pill ${GRADE_CLASS[g10]}">미세먼지 <b>${g10}</b> <small>${air.pm10}㎍/㎥</small></span>
       <span class="aq-pill ${GRADE_CLASS[g25]}">초미세먼지 <b>${g25}</b> <small>${air.pm25}㎍/㎥</small></span>
     </div>
-    <p class="wx-note">${note}</p>`;
+    ${note ? `<p class="wx-note wx-note--warn">${note}</p>` : ''}`;
 }
 
 // ---------- 일출 · 일몰 ----------
@@ -754,14 +773,10 @@ function sunNote(slot, hours, sunrise, sunset) {
   const rise = toMin(sunrise);
   const set = toMin(sunset);
   const start = hours[0] * 60;
-  if (slot === '새벽·아침') {
-    return start < rise
-      ? `해 뜨기 전에는 어두워요. 일출을 보며 달리려면 ${fromMin(rise - 15)}쯤 출발해 보세요.`
-      : '해가 뜬 뒤라 밝은 길에서 달릴 수 있어요.';
-  }
-  if (slot === '낮') return `해가 높은 시간이에요. 일몰(${sunset}) 전까지 여유 있게 달릴 수 있어요.`;
-  if (slot === '저녁') return `노을을 보며 달리려면 일몰 30분 전인 ${fromMin(set - 30)}쯤 출발하세요. 일몰 뒤에는 금방 어두워져요.`;
-  return `일몰(${sunset}) 이후라 어두워요. 조명이 있는 길로 달리고, 밝은 옷이나 라이트를 챙기세요.`;
+  if (slot === '새벽·아침') return start < rise ? `${fromMin(rise - 15)}에 출발하면 일출을 보며 달려요.` : '';
+  if (slot === '저녁') return `${fromMin(set - 30)}에 출발하면 노을을 보며 달려요.`;
+  if (slot === '밤') return '해가 진 뒤라 어두워요.';
+  return '';
 }
 
 // ---------- 옷차림 추천 (체감 온도 기준 + 비 · 바람 · 어두움 · 햇빛) ----------
@@ -786,18 +801,6 @@ function outfitFor(feels, rainChance, wind, isDark, isSunnyDay) {
   return items;
 }
 
-// 체감 온도·비·바람으로 한 줄 조언
-function runningTip(feels, rainChance, wind) {
-  const tips = [];
-  if (feels < 0) tips.push('영하의 추위예요. 실내에서 충분히 몸을 풀고 나가세요.');
-  else if (feels < 8) tips.push('쌀쌀해요. 겉옷을 입고 시작해서 몸이 데워지면 벗어 주세요.');
-  else if (feels < 21) tips.push('달리기 딱 좋은 기온이에요.');
-  else if (feels < 26) tips.push('조금 더울 수 있어요. 물을 챙기고 페이스를 살짝 늦춰 보세요.');
-  else tips.push('더워요. 그늘이 있는 구간을 고르고, 중간중간 물을 꼭 마셔 주세요.');
-  if (rainChance >= 60) tips.push('비 소식이 있으니 젖어도 괜찮은 신발을 신으세요.');
-  if (wind >= 8) tips.push('바람이 강해요. 맞바람 구간에서는 무리하지 마세요.');
-  return tips.join(' ');
-}
 
 // =============================================
 // 6. 근처 행사 (TourAPI, 키가 없으면 예시 데이터)

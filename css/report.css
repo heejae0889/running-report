@@ -376,15 +376,29 @@ body.report-page .site-footer { margin-top: 24px; }
   font-weight: 600;
 }
 
-.weather-tip {
+/* 시간별 날씨 (달리는 시간대) */
+.hourly {
+  display: flex;
+  gap: 8px;
+  list-style: none;
   margin: 0;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: var(--color-orange-soft);
-  color: #9a4a12;
-  font-weight: 600;
-  font-size: 0.95rem;
+  padding: 0;
 }
+.hourly li {
+  flex: 1;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  border-radius: 12px;
+  background: #f5f6f8;
+  font-variant-numeric: tabular-nums;
+}
+.hr-time { font-size: 0.78rem; font-weight: 700; color: var(--color-muted); }
+.hr-icon { font-size: 1.3rem; line-height: 1.2; }
+.hr-temp { font-size: 1.05rem; font-weight: 800; }
+.hr-rain { font-size: 0.75rem; color: #3b6fb6; }
+.wx-note--warn { color: #b45309; font-weight: 600; }
 
 /* 장소 목록 (쉬어 갈 곳, 숙소) */
 .place-list, .event-list {
