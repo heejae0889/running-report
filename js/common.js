@@ -1,4 +1,4 @@
-// ---------- 지역 목록 (설문 Q1 선택지 & 지도 중심 좌표) ----------
+// ---------- 지역 목록 ----------
 const REGIONS = [
   { code: 'busan',     name: '부산', addr: '부산',   center: { lat: 35.1532, lng: 129.1186 } },
   { code: 'seoul',     name: '서울', addr: '서울',   center: { lat: 37.5296, lng: 126.9343 } },
@@ -12,7 +12,7 @@ function getRegion(code) {
   return REGIONS.find((r) => r.code === code) || null;
 }
 
-// ---------- 페이지 간 데이터 전달: URL 파라미터 ----------
+// ---------- 페이지 간 데이터 전달 ----------
 
 function buildQuery(obj) {
   const params = new URLSearchParams();
@@ -38,7 +38,7 @@ function getParams() {
   };
 }
 
-// ---------- 키·몸무게 (칼로리 계산용) ----------
+// ---------- 키·몸무게----------
 function saveBodyInfo(info) {
   try {
     if (info) sessionStorage.setItem('tripRunningBody', JSON.stringify(info));

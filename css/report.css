@@ -1,15 +1,10 @@
-/* =============================================
-   나의 러닝 레포트 페이지 전용 스타일
-   위: 여행지 사진 위의 요약(어두운 영역) / 아래: 읽기 편한 밝은 레포트
-   ============================================= */
-
 body.report-page {
   background: #eef0f3;
-  padding-bottom: 96px;            /* 아래 고정 버튼에 내용이 가리지 않게 */
+  padding-bottom: 96px;           
 }
 body.report-page .site-footer { margin-top: 24px; }
 
-/* ---------- 설문 없이 들어왔을 때 ---------- */
+
 .report-empty {
   max-width: 520px;
   margin: calc(18vh + 48px) auto 18vh;
@@ -29,7 +24,7 @@ body.report-page .site-footer { margin-top: 24px; }
 }
 .btn-primary-run:hover { background: #ff8a36; color: #fff; }
 
-/* ---------- 1. 상단 요약 ---------- */
+
 .report-hero {
   position: relative;
   color: #fff;
@@ -48,7 +43,7 @@ body.report-page .site-footer { margin-top: 24px; }
   position: relative;
   max-width: 1040px;
   margin: 0 auto;
-  padding: clamp(96px, 14vh, 136px) clamp(20px, 4vw, 40px) 32px;   /* 위쪽 반투명 메뉴 막대만큼 여유 */
+  padding: clamp(96px, 14vh, 136px) clamp(20px, 4vw, 40px) 32px;  
 }
 .hero-when {
   font-size: 1rem;
@@ -101,7 +96,7 @@ body.report-page .site-footer { margin-top: 24px; }
   letter-spacing: 0;
 }
 
-/* 몸무게 입력 (칼로리 계산) */
+
 .kcal-form {
   display: flex;
   flex-wrap: wrap;
@@ -141,7 +136,7 @@ body.report-page .site-footer { margin-top: 24px; }
   font-weight: 700;
 }
 
-/* ---------- 레포트 본문 ---------- */
+
 .report-body {
   max-width: 1040px;
   margin: 0 auto;
@@ -168,7 +163,7 @@ body.report-page .site-footer { margin-top: 24px; }
 .block-note:empty { display: none; }
 .loading { color: var(--color-muted); }
 
-/* 지도 */
+
 .map-wrap { position: relative; }
 .map {
   width: 100%;
@@ -181,7 +176,7 @@ body.report-page .site-footer { margin-top: 24px; }
   position: absolute;
   left: 12px;
   top: 12px;
-  max-width: calc(100% - 70px);   /* 오른쪽 확대·축소 버튼과 겹치지 않게 */
+  max-width: calc(100% - 70px);  
   z-index: 3;
   display: flex;
   flex-wrap: wrap;
@@ -204,7 +199,7 @@ body.report-page .site-footer { margin-top: 24px; }
 .dot--stay  { background: #7a4cc2; }
 .dot--event { background: #e0457b; }
 
-/* 코스를 만드는 동안 지도 위 안내 */
+
 .map-status {
   position: absolute;
   inset: 0;
@@ -233,7 +228,7 @@ body.report-page .site-footer { margin-top: 24px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } }
 
-/* 코스 소개 · 추천 이유 · 팁 */
+
 .course-story:empty { display: none; }
 .course-story {
   display: grid;
@@ -253,7 +248,7 @@ body.report-page .site-footer { margin-top: 24px; }
 .course-story li + li { margin-top: 4px; }
 @media (max-width: 760px) { .course-story { grid-template-columns: 1fr; } }
 
-/* 지도 위 표시 (카카오맵 CustomOverlay 안에 들어가는 요소) */
+
 .pin {
   display: flex;
   align-items: center;
@@ -319,7 +314,7 @@ body.report-page .site-footer { margin-top: 24px; }
 .weather-grid div { background: #f5f6f8; border-radius: 12px; padding: 10px 12px; }
 .weather-grid dt { font-size: 0.78rem; color: var(--color-muted); font-weight: 600; }
 .weather-grid dd { margin: 2px 0 0; font-weight: 800; font-size: 1.1rem; }
-/* 공기 · 해 · 옷차림: 왼쪽 이름표 + 오른쪽 내용 */
+
 .wx-rows { margin: 4px 0 16px; border-top: 1px solid #eceef1; }
 .wx-row {
   display: grid;
@@ -349,10 +344,10 @@ body.report-page .site-footer { margin-top: 24px; }
 }
 .aq-pill b { font-weight: 800; }
 .aq-pill small { font-size: 0.75rem; opacity: 0.75; font-variant-numeric: tabular-nums; }
-.aq--good   { background: #e3efff; color: #1d5bb8; }   /* 좋음: 파랑 */
-.aq--normal { background: #e2f5e9; color: #1f7a45; }   /* 보통: 초록 */
-.aq--bad    { background: #fff1d6; color: #9a5b00; }   /* 나쁨: 주황 */
-.aq--worst  { background: #fde4e4; color: #b42318; }   /* 매우 나쁨: 빨강 */
+.aq--good   { background: #e3efff; color: #1d5bb8; }   
+.aq--normal { background: #e2f5e9; color: #1f7a45; }   
+.aq--bad    { background: #fff1d6; color: #9a5b00; }   
+.aq--worst  { background: #fde4e4; color: #b42318; }   
 
 .sun-times { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.95rem; }
 .sun-times b { font-variant-numeric: tabular-nums; margin-left: 2px; }
@@ -376,7 +371,7 @@ body.report-page .site-footer { margin-top: 24px; }
   font-weight: 600;
 }
 
-/* 시간별 날씨 (달리는 시간대) */
+
 .hourly {
   display: flex;
   gap: 8px;
@@ -400,7 +395,7 @@ body.report-page .site-footer { margin-top: 24px; }
 .hr-rain { font-size: 0.75rem; color: #3b6fb6; }
 .wx-note--warn { color: #b45309; font-weight: 600; }
 
-/* 장소 목록 (쉬어 갈 곳, 숙소) */
+
 .place-list, .event-list {
   list-style: none;
   margin: 0;
@@ -447,7 +442,7 @@ body.report-page .site-footer { margin-top: 24px; }
 .place-link { flex: none; font-size: 0.8rem; color: var(--color-blue); }
 .empty-msg { color: var(--color-muted); padding: 8px 0; }
 
-/* 행사 */
+
 .event-item { display: flex; gap: 14px; padding: 12px 0; align-items: flex-start; }
 .event-thumb {
   flex: none;
@@ -477,7 +472,7 @@ body.report-page .site-footer { margin-top: 24px; }
   margin: 4px 0 0;
 }
 
-/* ---------- 저장 · 공유 버튼 (화면 아래 고정) ---------- */
+
 .action-bar {
   position: fixed;
   left: 50%;
@@ -532,10 +527,10 @@ body.report-page .site-footer { margin-top: 24px; }
 }
 .toast-msg.show { opacity: 1; transform: translate(-50%, 0); }
 
-/* 이미지로 저장하는 동안: 캡처용 정리 */
+
 .report.is-capturing .report-body { padding-bottom: 24px; }
 
-/* ---------- 모바일 ---------- */
+
 @media (max-width: 760px) {
   .report-body { grid-template-columns: 1fr; gap: 14px; padding-top: 16px; }
   .block { padding: 20px 16px; border-radius: 16px; }

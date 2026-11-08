@@ -1,22 +1,6 @@
-// =============================================
 // 러닝 코스 설문 페이지 스크립트
-// - 질문은 아래 QUESTIONS 배열만 고치면 추가/삭제/순서 변경이 됩니다.
-// - 답변은 answers 객체에 모았다가, 마지막에 report.html?region=..&km=.. 로 넘깁니다.
-// 공통 함수(buildQuery, formatDateKo)는 js/common.js 참고
-// =============================================
-
-// Unsplash 사진 주소 만들기 (w: 가로 크기)
 const photo = (id, w = 1600) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=70`;
 
-// ---------- 질문 목록 ----------
-// 순서: 여행 정보(어디, 언제, 숙박, 기간) → 러닝 계획(시간대, 인원) → 내 실력(경험, 페이스, 거리, 키·몸무게) → 취향(풍경)
-// type 종류
-//   'photo'  : 사진 카드 (누르면 바로 다음)
-//   'choice' : 버튼 선택 (누르면 바로 다음). custom이 있으면 '직접 입력' 추가
-//   'date'   : 날짜 선택 + '다음' 버튼
-//   'body'   : 키·몸무게 입력 + '다음' / '건너뛰기' (공유 링크에 넣지 않고 이 브라우저에만 잠깐 저장)
-// bg     : 이 질문에서 보여 줄 배경 사진 (Unsplash 사진 번호)
-// skipIf : 이 조건이면 질문을 건너뛰고 skipValue로 자동 답변
 const QUESTIONS = [
   {
     key: 'region',
@@ -156,10 +140,9 @@ const QUESTIONS = [
 ];
 
 // ---------- 상태 ----------
-let current = 0;     // 지금 보고 있는 질문 번호 (QUESTIONS 기준, 0부터)
-const answers = {};  // { region: 'busan', date: '2026-11-14', ... }
+let current = 0;     
+const answers = {};  
 
-// ---------- 화면 요소 ----------
 const $body = document.getElementById('questionBody');
 const $prev = document.getElementById('prevBtn');
 const $next = document.getElementById('nextBtn');
@@ -173,7 +156,7 @@ let activeLayer = 0;
 const isSkipped = (i) => Boolean(QUESTIONS[i].skipIf && QUESTIONS[i].skipIf(answers));
 const visibleIndexes = () => QUESTIONS.map((_, i) => i).filter((i) => !isSkipped(i));
 
-// ---------- 배경 사진 바꾸기 (두 장을 번갈아 겹쳐서 부드럽게) ----------
+// ---------- 배경 사진 바꾸기 ----------
 let currentBg = '';
 function setBackground(id) {
   if (!id || id === currentBg) return;
@@ -185,7 +168,7 @@ function setBackground(id) {
   activeLayer = 1 - activeLayer;
 }
 
-// 다음 질문 사진을 미리 받아 두면 전환할 때 깜빡이지 않아요
+
 function preload(i) {
   const q = QUESTIONS[i];
   if (!q) return;
@@ -200,7 +183,7 @@ function render(direction = 'forward') {
   const step = order.indexOf(current) + 1;
   const total = order.length;
 
-  // 진행 상태: 지금까지 달려온 만큼 주황색으로
+  // 진행 상태
   const ratio = total > 1 ? (step - 1) / (total - 1) : 0;
   $fill.style.width = `${ratio * 100}%`;
   $runner.style.left = `${ratio * 100}%`;
@@ -222,7 +205,7 @@ function render(direction = 'forward') {
   $body.innerHTML = html;
   $body.className = direction === 'forward' ? 'slide-in' : 'slide-in-back';
 
-  // '다음' 버튼은 날짜·키몸무게처럼 바로 넘길 수 없는 질문에서만 보여 줍니다
+
   $next.classList.toggle('d-none', !['date', 'body'].includes(q.type));
   $prev.textContent = step === 1 ? '처음으로' : '이전';
 
@@ -264,7 +247,6 @@ function renderChoice(q) {
   return html;
 }
 
-// 한국 시간 기준 'YYYY-MM-DD' (toISOString은 UTC라 아침엔 어제 날짜가 나올 수 있음)
 const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 function renderDate(q) {
@@ -279,7 +261,6 @@ function renderDate(q) {
   `;
 }
 
-// 키·몸무게는 공유 링크(URL)에 넣지 않고, 이 브라우저 탭에만 잠깐 저장합니다 (common.js의 readBodyInfo로 읽기)
 function renderBody() {
   const saved = readBodyInfo() || {};
   return `
@@ -301,7 +282,7 @@ function renderBody() {
 
 // ---------- 이벤트 연결 ----------
 function bindEvents(q) {
-  // 사진 카드·버튼 선택 → 표시 후 바로 다음 질문
+
   $body.querySelectorAll('.photo-tile, .choice-btn:not([data-custom])').forEach((btn) => {
     btn.addEventListener('click', () => {
       const option = q.options.find((o) => String(o.value) === btn.dataset.value);
@@ -311,7 +292,7 @@ function bindEvents(q) {
     });
   });
 
-  // 직접 입력 (거리)
+  // 직접 입력
   const customBtn = $body.querySelector('[data-custom]');
   if (customBtn) {
     customBtn.addEventListener('click', () => {
@@ -334,7 +315,7 @@ function bindEvents(q) {
     });
   }
 
-  // 키·몸무게: 건너뛰기
+  // 키·몸무게
   const skipBody = document.getElementById('skipBody');
   if (skipBody) {
     skipBody.addEventListener('click', () => { saveBodyInfo(null); goNext(true); });
@@ -371,8 +352,7 @@ function showError(msg) {
   if (el) el.textContent = msg;
 }
 
-// ---------- 이동 ----------
-// 선택한 표시를 잠깐 보여 준 뒤 넘어가도록 약간 늦춥니다
+
 let moving = false;
 function goNextSoon() {
   if (moving) return;
@@ -383,7 +363,7 @@ function goNextSoon() {
 function goNext(skipCheck = false) {
   const q = QUESTIONS[current];
 
-  // 키·몸무게 검사 (몸무게만 있어도 칼로리 계산 가능)
+
   if (q.type === 'body' && !skipCheck) {
     const h = Number(document.getElementById('heightValue').value);
     const w = Number(document.getElementById('weightValue').value);
@@ -393,7 +373,7 @@ function goNext(skipCheck = false) {
     saveBodyInfo({ height: h || null, weight: w });
   }
 
-  // 날짜 질문은 '다음' 버튼을 눌렀을 때 검사
+
   if (q.type === 'date') {
     const input = document.getElementById('dateValue');
     if (!input.value) { showError('달릴 날짜를 골라 주세요.'); return; }
@@ -402,7 +382,7 @@ function goNext(skipCheck = false) {
     answers.date = input.value;
   }
 
-  // 다음 질문 찾기 (건너뛸 질문은 자동 답변하고 넘어감)
+  // 다음 질문 찾기
   let i = current + 1;
   while (i < QUESTIONS.length && isSkipped(i)) {
     answers[QUESTIONS[i].key] = QUESTIONS[i].skipValue;
@@ -431,7 +411,7 @@ function goPrev() {
 $next.addEventListener('click', () => goNext());
 $prev.addEventListener('click', goPrev);
 
-// 키보드: 숫자 1~9로 선택지 고르기
+// 키보드
 document.addEventListener('keydown', (e) => {
   if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
   const n = Number(e.key);
@@ -440,9 +420,6 @@ document.addEventListener('keydown', (e) => {
   if (buttons[n - 1]) buttons[n - 1].click();
 });
 
-// ---------- 마지막: 코스를 실제로 만들고 → 다 되면 레포트로 이동 ----------
-// 진행바·경로선은 실제 진행 상황(제미나이 구상 → 장소 찾기 → 길 계산)에 맞춰 차오릅니다.
-// 제미나이 답을 기다리는 동안에도 멈춰 보이지 않도록, 다음 단계 직전까지 아주 천천히 조금씩 움직여요.
 const STEP_ORDER = ['plan', 'place', 'route', 'done'];
 const CREEP_LIMIT = { plan: 42, place: 62, route: 84, done: 99 };   // 각 단계에서 기다리는 동안 갈 수 있는 최대치
 const progress = { value: 0, target: 0, limit: 0, raf: 0 };
@@ -474,7 +451,7 @@ function drawProgress() {
   document.getElementById('analyzingPercent').textContent = Math.floor(pct);
   document.getElementById('analyzingBar').setAttribute('aria-valuenow', Math.floor(pct));
 
-  // 위쪽 경로선: 진행한 만큼 주황 선이 그려지고, 동그라미(러너)가 따라감
+  // 위쪽 경로선: 진행한 만큼 주황 선이 그려지고, 동그라미가 따라감
   const path = document.getElementById('analyzingPath');
   const len = path.getTotalLength();
   path.style.strokeDasharray = `${len}`;
@@ -502,7 +479,7 @@ async function finish() {
   const region = QUESTIONS[0].options.find((o) => o.value === answers.region);
   if (region) setBackground(region.img);
 
-  const minShow = sleep(1500);   // 너무 빨리 지나가면 무슨 일이 있었는지 안 보여서 최소 1.5초
+  const minShow = sleep(1500);
   let url = 'report.html?' + buildQuery(answers);
   setProgress(4, 'plan', '여행지 정보를 정리하는 중…');
 
@@ -519,7 +496,6 @@ async function finish() {
       url += '&course=example';
     }
   } else {
-    // 키가 없으면 예시 코스로 (단계만 차례대로 보여 주기)
     saveCourseError('js/secrets.js에 제미나이·TMAP 키를 넣으면 AI 맞춤 코스를 만들어요. 지금은 예시 코스예요.');
     setProgress(30, 'place', '예시 코스를 고르는 중…');
     await sleep(500);
@@ -536,7 +512,7 @@ async function finish() {
 }
 
 function saveCourseError(msg) {
-  try { sessionStorage.setItem('tripRunningCourseError', msg); } catch (e) { /* 무시 */ }
+  try { sessionStorage.setItem('tripRunningCourseError', msg); } catch (e) {  }
 }
 
 // ---------- 시작 ----------
