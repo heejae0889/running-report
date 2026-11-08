@@ -13,31 +13,39 @@ const MAX_ATTEMPTS = 5;
 const MAX_RETRIES = MAX_ATTEMPTS - 1;
 
 // ---------- 메인 ----------
+// 시도마다: 제미나이 구상 → 장소 찾기 → 길 계산
+// 중간에 실패해도 그 시도만 버리고 다음 시도로 넘어감 (5번 모두 실패할 때만 에러)
 async function buildAiCourse(params, onStep = () => {}) {
   const region = getRegion(params.region);
   const target = params.km || 5;
   const gap = (c) => Math.abs(c.distanceKm - target) / target;
 
-  onStep('제미나이가 코스를 구상하고 있어요…', 8, 'plan');
-  let plan = await askGeminiForPlan(params);
-  let best = await planToCourse(plan, region, (text, frac, step) => onStep(text, 45 + frac * 40, step));
-  const tried = [{ plan, km: best.distanceKm }];
+  let best = null;
+  let lastError = null;
+  const tried = [];
 
-  //남은 진행바는 시도 횟수만큼 나눠서 사용
-  for (let attempt = 1; attempt <= MAX_RETRIES && gap(best) > DISTANCE_TOLERANCE; attempt++) {
-    const from = 86 + ((attempt - 1) / MAX_RETRIES) * 10;
-    const size = 10 / MAX_RETRIES;
-    onStep('거리를 맞추고 있어요…', from, 'plan');
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    if (best && gap(best) <= DISTANCE_TOLERANCE) break;
+
+    // 진행바: 첫 시도 8% → 85%, 다시 시도는 남은 86% → 96%를 나눠서 사용
+    const first = attempt === 0;
+    const from = first ? 45 : 86 + ((attempt - 1) / MAX_RETRIES) * 10;
+    const size = first ? 40 : 10 / MAX_RETRIES;
+    if (first) onStep('제미나이가 코스를 구상하고 있어요…', 8, 'plan');
+    else onStep('거리를 맞추고 있어요…', from, 'plan');
+
     try {
-      const nextPlan = await askGeminiForPlan(params, { attempts: tried });
-      const next = await planToCourse(nextPlan, region, (text, frac, step) => onStep(text, from + frac * size, step));
-      tried.push({ plan: nextPlan, km: next.distanceKm });
-      if (gap(next) < gap(best)) best = next;
+      const plan = await askGeminiForPlan(params, tried.length ? { attempts: tried } : null);
+      const course = await planToCourse(plan, region, (text, frac, step) => onStep(text, from + frac * size, step));
+      tried.push({ plan, km: course.distanceKm });
+      if (!best || gap(course) < gap(best)) best = course;
     } catch (e) {
-      console.warn(`${attempt}번째 다시 시도 실패`, e);
+      lastError = e;
+      console.warn(`${attempt + 1}번째 시도 실패`, e);
     }
   }
 
+  if (!best) throw lastError || new Error('코스를 만들지 못했어요.');
   onStep('코스가 완성됐어요!', 97, 'done');
   return best;
 }
@@ -207,8 +215,12 @@ async function planToCourse(plan, region, report = () => {}) {
     else console.warn('장소를 찾지 못해 건너뜀:', wp.query);
   }
   report('실제 걷는 길을 계산하고 있어요…', 0.55, 'route');
-  // 같은 곳이 연달아 나오면 하나로
-  const uniq = points.filter((pt, i) => i === 0 || distanceKm(pt.lat, pt.lng, points[i - 1].lat, points[i - 1].lng) > 0.05);
+  // 서로 120m 안으로 붙은 장소는 하나로 (TMAP은 너무 가까운 경유지를 거부함)
+  const uniq = [];
+  points.forEach((pt) => {
+    const prev = uniq[uniq.length - 1];
+    if (!prev || distanceKm(pt.lat, pt.lng, prev.lat, prev.lng) > 0.12) uniq.push(pt);
+  });
   if (uniq.length < 2) throw new Error('제미나이가 고른 장소를 지도에서 찾지 못했어요.');
 
   const course = await routeThrough(uniq, plan.type, region);
@@ -241,10 +253,15 @@ function findPlace(query, region) {
 
 // TMAP
 async function routeThrough(points, type, region) {
+  let leg;
+  try {
+    leg = await tmapPedestrian(points[0], points[points.length - 1], points.slice(1, -1).slice(0, 5));   // TMAP 경유지는 최대 5곳
+  } catch (e) {
+    console.warn('한 번에 길찾기 실패 → 구간별로 다시', e);
+    ({ leg, points } = await routeLegByLeg(points));
+  }
   const start = points[0];
   const end = points[points.length - 1];
-  const via = points.slice(1, -1).slice(0, 5);                       // TMAP 경유지는 최대 5곳
-  const leg = await tmapPedestrian(start, end, via);
 
   let path = leg.path;
   let meters = leg.meters;
@@ -272,7 +289,27 @@ async function routeThrough(points, type, region) {
   };
 }
 
-async function tmapPedestrian(start, end, via = []) {
+// 구간별로 길찾기: 실패한 구간은 다음 장소를 빼고 다시 이어 보기
+async function routeLegByLeg(input) {
+  const points = [...input];
+  const path = [];
+  let meters = 0;
+  let i = 0;
+  while (i < points.length - 1) {
+    try {
+      const leg = await tmapPedestrian(points[i], points[i + 1]);
+      path.push(...(path.length ? leg.path.slice(1) : leg.path));
+      meters += leg.meters;
+      i++;
+    } catch (e) {
+      if (points.length <= 2) throw e;
+      points.splice(i + 1, 1);   // 갈 수 없는 다음 장소를 빼고 그다음 장소로 (출발점은 유지)
+    }
+  }
+  return { leg: { path, meters }, points };
+}
+
+async function tmapPedestrian(start, end, via = [], retried = false) {
   const body = {
     startX: String(start.lng),
     startY: String(start.lat),
@@ -291,11 +328,19 @@ async function tmapPedestrian(start, end, via = []) {
     headers: { 'Content-Type': 'application/json', Accept: 'application/json', appKey: AI_KEYS().TMAP_APP_KEY },
     body: JSON.stringify(body),
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || !Array.isArray(data.features)) {
-    const msg = data?.error?.message || data?.error?.code || `HTTP ${res.status}`;
-    throw new Error(`TMAP 길찾기 오류: ${msg}`);
+  // 가끔 응답이 깨져서 오므로 글자로 받은 뒤 읽기
+  const text = await res.text();
+  let data = null;
+  try { data = JSON.parse(text); } catch (e) { data = null; }
+
+  if (!data || (res.ok && !Array.isArray(data.features))) {
+    if (!retried) {                                               // 깨진 응답은 잠깐 쉬고 한 번 더
+      await new Promise((r) => setTimeout(r, 700));
+      return tmapPedestrian(start, end, via, true);
+    }
+    throw new Error('TMAP 응답을 읽지 못했어요.');
   }
+  if (!res.ok) throw new Error(`TMAP 길찾기 오류: ${data.error?.message || data.error?.code || res.status}`);
 
   // LineString 좌표 잇기
   const path = [];
