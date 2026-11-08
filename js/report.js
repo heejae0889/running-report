@@ -7,7 +7,7 @@
 //   칼로리         : 운동 강도(MET) × 몸무게 × 시간
 //   날씨           : Open-Meteo (키 필요 없음)
 //   쉬어 갈 곳·숙소: 카카오 장소 검색 (카카오 JavaScript 키)
-//   행사           : 한국관광공사 TourAPI (config.js의 TOUR_API_KEY, 없으면 예시 데이터)
+//   행사           : 한국관광공사 TourAPI (secrets.js의 TOUR_API_KEY, 없으면 예시 데이터)
 //   PDF 저장       : html2canvas(화면 캡처) + jsPDF(PDF 만들기)
 // 공통 함수(getParams, getRegion, loadJSON, pickCourse, loadKakaoMap, readBodyInfo 등)는 js/common.js 참고
 // =============================================
@@ -677,7 +677,7 @@ async function loadEvents() {
   let events = [];
   let isSample = false;
 
-  if (CONFIG.TOUR_API_KEY) {
+  if (tourApiKey()) {
     try {
       events = await fetchTourEvents(p.date, start.lat, start.lng);
     } catch (e) {
@@ -733,6 +733,14 @@ async function loadEvents() {
   state.mapReady.then(addEventPins).catch(() => {});
 }
 
+// TourAPI 키: secrets.js(GitHub에 안 올라감) → config.js 순서로 찾기
+// Encoding 키(%2B 같은 글자가 섞인 것)를 넣어도 동작하도록 한 번 풀어서 사용
+function tourApiKey() {
+  const raw = (typeof SECRETS !== 'undefined' && SECRETS.TOUR_API_KEY) || CONFIG.TOUR_API_KEY || '';
+  if (!raw) return '';
+  try { return raw.includes('%') ? decodeURIComponent(raw) : raw; } catch (e) { return raw; }
+}
+
 // 한국관광공사 TourAPI: 행사정보조회
 async function fetchTourEvents(date, lat, lng) {
   const day = date.replaceAll('-', '');
@@ -740,7 +748,7 @@ async function fetchTourEvents(date, lat, lng) {
   const from = new Date(date + 'T00:00:00');
   from.setDate(from.getDate() - 120);
   const params = new URLSearchParams({
-    serviceKey: CONFIG.TOUR_API_KEY,
+    serviceKey: tourApiKey(),
     MobileOS: 'ETC',
     MobileApp: 'TripRunning',
     _type: 'json',

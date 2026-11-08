@@ -13,4 +13,8 @@ const SECRETS = {
 
   // SK open API > 내 앱 > 앱키(appKey) — TMAP 보행자 경로안내용
   TMAP_APP_KEY: '',
+
+  // 공공데이터포털 > 한국관광공사_국문 관광정보 서비스_GW > 일반 인증키 — 근처 행사 정보용
+  // (Decoding 키 권장, Encoding 키를 넣어도 동작)
+  TOUR_API_KEY: '',
 };
