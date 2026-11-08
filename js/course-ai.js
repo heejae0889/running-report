@@ -37,8 +37,7 @@ async function buildAiCourse(params, onStep = () => {}) {
   for (let attempt = 1; attempt <= MAX_RETRIES && gap(best) > DISTANCE_TOLERANCE; attempt++) {
     const from = 86 + ((attempt - 1) / MAX_RETRIES) * 10;
     const size = 10 / MAX_RETRIES;
-    const last = tried[tried.length - 1];
-    onStep(`거리를 맞추고 있어요… (${last.km}km → 목표 ${target}km)`, from, 'plan');
+    onStep('거리를 맞추고 있어요…', from, 'plan');
     try {
       const nextPlan = await askGeminiForPlan(params, { attempts: tried });
       const next = await planToCourse(nextPlan, region, (text, frac, step) => onStep(text, from + frac * size, step));
