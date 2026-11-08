@@ -237,6 +237,47 @@ body.survey-page {
 }
 .custom-input .unit { color: rgba(255, 255, 255, 0.75); }
 
+/* ---------- 유형 4: 키·몸무게 ---------- */
+.body-inputs {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.body-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.07);
+  font-weight: 700;
+}
+.body-field input {
+  width: 90px;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 1.3rem;
+  font-weight: 800;
+  text-align: right;
+  color-scheme: dark;
+}
+.body-field input::placeholder { color: rgba(255, 255, 255, 0.35); }
+.body-field .unit { color: rgba(255, 255, 255, 0.65); font-weight: 500; }
+.body-field:focus-within { border-color: var(--color-orange); }
+.btn-skip {
+  margin-top: 14px;
+  border: 0;
+  background: none;
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 4px 0;
+  cursor: pointer;
+}
+.btn-skip:hover { color: #fff; }
+
 /* ---------- 유형 3: 날짜 ---------- */
 .date-input {
   color-scheme: dark;
@@ -293,6 +334,7 @@ body.survey-page {
 .btn-ghost:focus-visible,
 .btn-next:focus-visible,
 .date-input:focus-visible,
+.btn-skip:focus-visible,
 .custom-input input:focus-visible {
   outline: 3px solid #fff;
   outline-offset: 3px;

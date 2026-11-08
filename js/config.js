@@ -6,4 +6,8 @@
 // ⚠ REST API 키, Admin 키는 절대 이 저장소에 올리지 마세요.
 const CONFIG = {
   KAKAO_JS_KEY: '5dbfbee77fdfb0ba449710b5eefe9ff6',
+
+  // 한국관광공사 TourAPI (행사 정보) — 공공데이터포털 '일반 인증키(Decoding)'
+  // 비워 두면 data/events.json 예시 데이터를 보여 줍니다.
+  TOUR_API_KEY: '',
 };

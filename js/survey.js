@@ -9,11 +9,12 @@
 const photo = (id, w = 1600) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=70`;
 
 // ---------- 질문 목록 ----------
-// 순서: 여행 정보(어디, 언제, 숙박, 기간) → 러닝 계획(시간대, 인원) → 내 실력(경험, 페이스, 거리) → 취향(풍경)
+// 순서: 여행 정보(어디, 언제, 숙박, 기간) → 러닝 계획(시간대, 인원) → 내 실력(경험, 페이스, 거리, 키·몸무게) → 취향(풍경)
 // type 종류
 //   'photo'  : 사진 카드 (누르면 바로 다음)
 //   'choice' : 버튼 선택 (누르면 바로 다음). custom이 있으면 '직접 입력' 추가
 //   'date'   : 날짜 선택 + '다음' 버튼
+//   'body'   : 키·몸무게 입력 + '다음' / '건너뛰기' (공유 링크에 넣지 않고 이 브라우저에만 잠깐 저장)
 // bg     : 이 질문에서 보여 줄 배경 사진 (Unsplash 사진 번호)
 // skipIf : 이 조건이면 질문을 건너뛰고 skipValue로 자동 답변
 const QUESTIONS = [
@@ -128,6 +129,13 @@ const QUESTIONS = [
     custom: { min: 1, max: 42, unit: 'km' },
   },
   {
+    key: 'body',
+    type: 'body',
+    text: '키와 몸무게를 알려 주세요',
+    hint: '예상 소모 칼로리 계산에만 쓰고, 공유 링크에는 담기지 않아요. 건너뛰어도 괜찮아요.',
+    bg: '1553012547-284d8c582b1f',
+  },
+  {
     key: 'scenery',
     type: 'photo',
     compact: true,
@@ -205,13 +213,14 @@ function render(direction = 'forward') {
   if (q.type === 'photo') html += renderPhoto(q);
   if (q.type === 'choice') html += renderChoice(q);
   if (q.type === 'date') html += renderDate(q);
+  if (q.type === 'body') html += renderBody(q);
   html += '<p class="error-msg" id="errorMsg" role="alert"></p>';
 
   $body.innerHTML = html;
   $body.className = direction === 'forward' ? 'slide-in' : 'slide-in-back';
 
-  // '다음' 버튼은 날짜처럼 바로 넘길 수 없는 질문에서만 보여 줍니다
-  $next.classList.toggle('d-none', q.type !== 'date');
+  // '다음' 버튼은 날짜·키몸무게처럼 바로 넘길 수 없는 질문에서만 보여 줍니다
+  $next.classList.toggle('d-none', !['date', 'body'].includes(q.type));
   $prev.textContent = step === 1 ? '처음으로' : '이전';
 
   bindEvents(q);
@@ -266,6 +275,26 @@ function renderDate(q) {
   `;
 }
 
+// 키·몸무게는 공유 링크(URL)에 넣지 않고, 이 브라우저 탭에만 잠깐 저장합니다 (common.js의 readBodyInfo로 읽기)
+function renderBody() {
+  const saved = readBodyInfo() || {};
+  return `
+    <div class="body-inputs">
+      <label class="body-field">
+        <span>키</span>
+        <input type="number" id="heightValue" inputmode="decimal" min="100" max="230" step="0.1" placeholder="170" value="${saved.height || ''}" />
+        <span class="unit">cm</span>
+      </label>
+      <label class="body-field">
+        <span>몸무게</span>
+        <input type="number" id="weightValue" inputmode="decimal" min="25" max="200" step="0.1" placeholder="65" value="${saved.weight || ''}" />
+        <span class="unit">kg</span>
+      </label>
+    </div>
+    <button type="button" class="btn-skip" id="skipBody">건너뛰기</button>
+  `;
+}
+
 // ---------- 이벤트 연결 ----------
 function bindEvents(q) {
   // 사진 카드·버튼 선택 → 표시 후 바로 다음 질문
@@ -298,6 +327,15 @@ function bindEvents(q) {
     document.getElementById('customOk').addEventListener('click', submitCustom);
     document.getElementById('customValue').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') submitCustom();
+    });
+  }
+
+  // 키·몸무게: 건너뛰기
+  const skipBody = document.getElementById('skipBody');
+  if (skipBody) {
+    skipBody.addEventListener('click', () => { saveBodyInfo(null); goNext(true); });
+    ['heightValue', 'weightValue'].forEach((id) => {
+      document.getElementById(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') goNext(); });
     });
   }
 
@@ -338,8 +376,18 @@ function goNextSoon() {
   setTimeout(() => { moving = false; goNext(); }, 300);
 }
 
-function goNext() {
+function goNext(skipCheck = false) {
   const q = QUESTIONS[current];
+
+  // 키·몸무게 검사 (몸무게만 있어도 칼로리 계산 가능)
+  if (q.type === 'body' && !skipCheck) {
+    const h = Number(document.getElementById('heightValue').value);
+    const w = Number(document.getElementById('weightValue').value);
+    if (!w) { showError('몸무게를 입력하거나 건너뛰기를 눌러 주세요.'); return; }
+    if (w < 25 || w > 200) { showError('몸무게는 25~200kg 사이로 입력해 주세요.'); return; }
+    if (h && (h < 100 || h > 230)) { showError('키는 100~230cm 사이로 입력해 주세요.'); return; }
+    saveBodyInfo({ height: h || null, weight: w });
+  }
 
   // 날짜 질문은 '다음' 버튼을 눌렀을 때 검사
   if (q.type === 'date') {
@@ -376,7 +424,7 @@ function goPrev() {
   render('back');
 }
 
-$next.addEventListener('click', goNext);
+$next.addEventListener('click', () => goNext());
 $prev.addEventListener('click', goPrev);
 
 // 키보드: 숫자 1~9로 선택지 고르기

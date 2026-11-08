@@ -45,6 +45,18 @@ function getParams() {
   };
 }
 
+// ---------- 키·몸무게 (칼로리 계산용) ----------
+// 개인 정보라 URL에 넣지 않고 sessionStorage(이 탭이 열려 있는 동안만)에 저장합니다.
+function saveBodyInfo(info) {
+  try {
+    if (info) sessionStorage.setItem('tripRunningBody', JSON.stringify(info));
+    else sessionStorage.removeItem('tripRunningBody');
+  } catch (e) { /* 저장이 막힌 브라우저면 무시 */ }
+}
+function readBodyInfo() {
+  try { return JSON.parse(sessionStorage.getItem('tripRunningBody')); } catch (e) { return null; }
+}
+
 // ---------- 데이터 불러오기 ----------
 // ⚠ fetch는 파일을 더블클릭(file://)으로 열면 동작하지 않습니다.
 //    반드시 VS Code의 Live Server로 열어 주세요.
@@ -90,11 +102,12 @@ function formatDateKo(dateStr) {
 
 // ---------- 카카오맵 SDK 불러오기 ----------
 // 사용법: loadKakaoMap().then(() => { const map = new kakao.maps.Map(...); });
+// libraries=services: 장소 검색(편의점, 카페, 숙소 등)까지 함께 불러옵니다.
 function loadKakaoMap() {
   return new Promise((resolve, reject) => {
     if (window.kakao && window.kakao.maps) return kakao.maps.load(resolve);
     const script = document.createElement('script');
-    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${CONFIG.KAKAO_JS_KEY}&autoload=false`;
+    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${CONFIG.KAKAO_JS_KEY}&libraries=services&autoload=false`;
     script.onload = () => kakao.maps.load(resolve);
     script.onerror = () => reject(new Error('카카오맵 SDK를 불러오지 못했습니다. 키/도메인 등록/카카오맵 사용 설정을 확인하세요.'));
     document.head.appendChild(script);
