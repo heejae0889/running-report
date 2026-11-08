@@ -13,9 +13,10 @@ const hasAiKeys = () => Boolean(AI_KEYS().GEMINI_API_KEY && AI_KEYS().TMAP_APP_K
 const hasTmapKey = () => Boolean(AI_KEYS().TMAP_APP_KEY);
 
 // 원하는 거리와 25% 넘게 다르면 제미나이에게 다시 짜 달라고 요청
-// (무한히 기다리지 않도록 최대 3번까지 다시 시도하고, 그래도 안 맞으면 가장 가까웠던 코스를 사용)
+// 첫 시도 포함 최대 5번까지 시도하고, 그래도 25% 안에 드는 코스가 없으면 가장 가까웠던 코스를 사용
 const DISTANCE_TOLERANCE = 0.25;
-const MAX_RETRIES = 3;
+const MAX_ATTEMPTS = 5;
+const MAX_RETRIES = MAX_ATTEMPTS - 1;
 
 // ---------- 메인: 설문 답 → 코스 ----------
 // onStep(text, percent, step): 진행 상황을 화면에 보여 줄 때 사용
@@ -37,7 +38,7 @@ async function buildAiCourse(params, onStep = () => {}) {
     const from = 86 + ((attempt - 1) / MAX_RETRIES) * 10;
     const size = 10 / MAX_RETRIES;
     const last = tried[tried.length - 1];
-    onStep(`거리를 맞추고 있어요… (${last.km}km → 목표 ${target}km, ${attempt}/${MAX_RETRIES})`, from, 'plan');
+    onStep(`거리를 맞추고 있어요… (${last.km}km → 목표 ${target}km, ${attempt + 1}/${MAX_ATTEMPTS}번째 시도)`, from, 'plan');
     try {
       const nextPlan = await askGeminiForPlan(params, { attempts: tried });
       const next = await planToCourse(nextPlan, region, (text, frac, step) => onStep(text, from + frac * size, step));
