@@ -343,15 +343,15 @@ async function initMap() {
   (c.waypoints || []).slice(1).forEach((w, i, arr) => {
     const isLastTurn = c.type === '왕복' && i === arr.length - 1;
     if (c.type === '편도' && i === arr.length - 1) return;
-    addPin(`via-${i}`, new kakao.maps.LatLng(w.lat, w.lng), isLastTurn ? '반' : i + 1, 'pin--via', isLastTurn ? `${w.name} (반환점)` : w.name);
+    addPin(`via-${i}`, new kakao.maps.LatLng(w.lat, w.lng), '', 'pin--via', isLastTurn ? `${w.name} (반환점)` : w.name);
   });
 
   const sameStartEnd = distanceKm(c.start.lat, c.start.lng, c.end.lat, c.end.lng) < 0.03;
   if (sameStartEnd) {
-    addPin('start', path[0], 'S', 'pin--start', `${c.start.name} (출발·도착)`);
+    addPin('start', path[0], '', 'pin--start', `${c.start.name} (출발·도착)`);
   } else {
-    addPin('start', path[0], 'S', 'pin--start', `${c.start.name} (출발)`);
-    addPin('end', path[path.length - 1], 'E', 'pin--end', `${c.end.name} (도착)`);
+    addPin('start', path[0], '', 'pin--start', `${c.start.name} (출발)`);
+    addPin('end', path[path.length - 1], '', 'pin--end', `${c.end.name} (도착)`);
   }
 
   const bounds = new kakao.maps.LatLngBounds();
@@ -364,11 +364,16 @@ async function initMap() {
   });
 }
 
-// 지도에 동그란 표시 추가
+// 지도에 동그란 색 점 추가 (번호가 있으면 마우스를 올렸을 때만 보여 줌)
 function addPin(id, position, text, cls, labelText) {
   const el = document.createElement('div');
   el.className = `pin ${cls}`;
-  el.textContent = text;
+  if (text !== '') {
+    el.dataset.num = text;
+    // 커진 점이 옆 점에 가리지 않게 맨 앞으로
+    el.addEventListener('mouseenter', () => { if (el.parentElement) el.parentElement.style.zIndex = 10; });
+    el.addEventListener('mouseleave', () => { if (el.parentElement) el.parentElement.style.zIndex = 3; });
+  }
   el.title = labelText;
   el.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -538,7 +543,7 @@ async function loadStays() {
   }).join('');
 
   stays.forEach((x, i) => {
-    addPin(`stay-${i}`, new kakao.maps.LatLng(Number(x.y), Number(x.x)), '숙', 'pin--stay', x.place_name);
+    addPin(`stay-${i}`, new kakao.maps.LatLng(Number(x.y), Number(x.x)), i + 1, 'pin--stay', x.place_name);
   });
   bindPlaceButtons('#stayList');
 }
@@ -826,7 +831,7 @@ async function loadEvents() {
     </li>`).join('');
 
   const addEventPins = () => events.filter((ev) => ev.dist <= 5).slice(0, 5).forEach((ev, i) => {
-    addPin(`event-${i}`, new kakao.maps.LatLng(ev.lat, ev.lng), '행', 'pin--event', ev.title);
+    addPin(`event-${i}`, new kakao.maps.LatLng(ev.lat, ev.lng), '', 'pin--event', ev.title);
   });
   state.mapReady.then(addEventPins).catch(() => {});
 }
