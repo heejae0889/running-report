@@ -253,20 +253,28 @@ body.report-page .site-footer { margin-top: 24px; }
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   color: #fff;
+  font-size: 11px;
   font-weight: 800;
   border: 2px solid #fff;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
   cursor: pointer;
+  transform: scale(0.64);             /* 평소엔 작은 색 점 */
+  transition: transform 0.15s ease;
 }
-.pin--start, .pin--end { width: 30px; height: 30px; font-size: 13px; }
+/* 쉬어 갈 곳 · 숙소: 마우스를 올리면 커지면서 아래 목록 번호가 보임 */
+.pin[data-num]:hover { transform: scale(1); }
+.pin[data-num]:hover::after { content: attr(data-num); }
+.pin--start, .pin--end { transform: scale(0.82); }
 .pin--start { background: var(--color-green); }
 .pin--end   { background: var(--color-red); }
-.pin--via   { width: 22px; height: 22px; font-size: 11px; background: var(--color-orange); }
-.pin--rest  { width: 22px; height: 22px; font-size: 11px; background: var(--color-blue); }
-.pin--stay  { width: 22px; height: 22px; font-size: 11px; background: #7a4cc2; }
-.pin--event { width: 22px; height: 22px; font-size: 11px; background: #e0457b; }
+.pin--via   { background: var(--color-orange); }
+.pin--rest  { background: var(--color-blue); }
+.pin--stay  { background: #7a4cc2; }
+.pin--event { background: #e0457b; }
 .pin-label {
   margin-top: 4px;
   padding: 3px 8px;
