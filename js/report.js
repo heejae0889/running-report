@@ -325,7 +325,8 @@ async function initMap() {
   const path = c.path.map(([lat, lng]) => new kakao.maps.LatLng(lat, lng));
 
   state.map = new kakao.maps.Map($('map'), { center: path[0], level: 5 });
-  state.map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
+  state.zoomCtl = new kakao.maps.ZoomControl();
+  state.map.addControl(state.zoomCtl, kakao.maps.ControlPosition.RIGHT);
   state.places = new kakao.maps.services.Places();
 
   // 코스 선
@@ -357,12 +358,45 @@ async function initMap() {
   const bounds = new kakao.maps.LatLngBounds();
   path.forEach((pt) => bounds.extend(pt));
   state.map.setBounds(bounds, 40, 40, 40, 40);
+  state.courseBounds = bounds;   // PDF로 저장할 때 다시 맞추려고 보관
 
   // 지도 빈 곳을 누르면 이름표 닫기
   kakao.maps.event.addListener(state.map, 'click', () => {
     if (Date.now() - (state.lastPinClick || 0) > 300) closeLabel();
   });
 }
+
+// ---------- PDF(인쇄)용 지도 맞추기 ----------
+// 인쇄 페이지 폭에 맞는 크기로 지도를 줄이고, 코스가 다 보이게 다시 맞춘 뒤 인쇄
+function fitMapForPrint(on) {
+  if (!state.map) return;
+  document.body.classList.toggle('print-map', on);
+  if (state.zoomCtl) {
+    if (on) state.map.removeControl(state.zoomCtl);
+    else state.map.addControl(state.zoomCtl, kakao.maps.ControlPosition.RIGHT);
+  }
+  state.map.relayout();
+  if (state.courseBounds) state.map.setBounds(state.courseBounds, 30, 30, 30, 30);
+}
+// 지도 그림(타일)이 다 받아질 때까지 잠깐 기다림 (최대 1.5초)
+function prepareMapForPrint() {
+  if (!state.map) return Promise.resolve();
+  fitMapForPrint(true);
+  return new Promise((resolve) => {
+    const done = () => { clearTimeout(timer); kakao.maps.event.removeListener(state.map, 'tilesloaded', done); resolve(); };
+    const timer = setTimeout(done, 1500);
+    kakao.maps.event.addListener(state.map, 'tilesloaded', done);
+  });
+}
+// ⌘P로 바로 인쇄해도 지도가 맞도록
+window.addEventListener('beforeprint', () => {
+  if (!document.body.classList.contains('print-map')) fitMapForPrint(true);
+});
+window.addEventListener('afterprint', () => {
+  if (state.titleBeforePrint) { document.title = state.titleBeforePrint; state.titleBeforePrint = null; }
+  fitMapForPrint(false);
+  $('saveBtn').disabled = false;
+});
 
 // 지도에 동그란 색 점 추가 (번호가 있으면 마우스를 올렸을 때만 보여 줌)
 function addPin(id, position, text, cls, labelText) {
@@ -890,41 +924,16 @@ function bindActions() {
     renderStats();
   });
 
-  // PDF 저장
+  // PDF 저장: 브라우저 인쇄 창의 "PDF로 저장" 사용
+  // (html2canvas로 캡처하면 카카오 지도 배경과 코스 선이 빠져서 인쇄 방식으로 바꿈)
   $('saveBtn').addEventListener('click', async () => {
-    const btn = $('saveBtn');
-    if (!window.html2canvas || !window.jspdf) {
-      toast('PDF 기능을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.');
-      return;
-    }
-    btn.disabled = true;
-    toast('PDF를 만드는 중이에요…');
+    $('saveBtn').disabled = true;
     closeLabel();
-    const report = $('report');
-    report.classList.add('is-capturing');
-    try {
-      const canvas = await html2canvas(report, {
-        useCORS: true,
-        backgroundColor: '#eef0f3',
-        scale: Math.min(2, Math.max(1.5, window.devicePixelRatio || 1)),
-      });
-      const img = canvas.toDataURL('image/jpeg', 0.9);
-      const pageW = 210;                                   
-      const pageH = (pageW * canvas.height) / canvas.width; 
-      const pdf = new window.jspdf.jsPDF({ unit: 'mm', format: [pageW, pageH], orientation: pageH > pageW ? 'p' : 'l' });
-      pdf.addImage(img, 'JPEG', 0, 0, pageW, pageH);
-
-      const region = getRegion(state.params.region);
-      pdf.setProperties({ title: `${region.name} 러닝 레포트 · 트립 런닝` });
-      pdf.save(`트립런닝_${region.name}_${state.params.date}.pdf`);
-      toast('레포트를 PDF로 저장했어요.');
-    } catch (e) {
-      console.error(e);
-      toast('PDF로 저장하지 못했어요. 잠시 뒤 다시 시도해 주세요.');
-    } finally {
-      report.classList.remove('is-capturing');
-      btn.disabled = false;
-    }
+    await prepareMapForPrint();
+    const region = getRegion(state.params.region);
+    state.titleBeforePrint = document.title;
+    document.title = `트립런닝_${region.name}_${state.params.date}`;   // 저장될 파일 이름
+    window.print();
   });
 
   // 공유
