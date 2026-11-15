@@ -548,7 +548,8 @@ body.report-page .site-footer { margin-top: 24px; }
 .toast-msg.show { opacity: 1; transform: translate(-50%, 0); }
 
 
-.report.is-capturing .report-body { padding-bottom: 24px; }
+/* PDF(인쇄)용 지도 크기: 인쇄 직전에 화면에서도 같은 크기로 맞춰야 지도가 어긋나지 않음 */
+body.print-map .map { width: 640px; height: 400px; margin: 0 auto; }
 
 
 @media (max-width: 760px) {
@@ -564,6 +565,13 @@ body.report-page .site-footer { margin-top: 24px; }
 }
 
 @media print {
-  .action-bar, .site-header, .site-footer, .kcal-form { display: none !important; }
+  @page { size: A4; margin: 10mm; }
+  html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }   /* 배경 사진·색 그대로 */
+  .action-bar, .site-header, .site-footer, .kcal-form, .toast-msg { display: none !important; }
   body.report-page { background: #fff; padding: 0; }
+  .hero-inner { padding-top: 40px; }
+  .report-body { grid-template-columns: 1fr; gap: 12px; padding: 12px 0 0; }
+  .block { padding: 16px; border: 1px solid #e5e7eb; break-inside: avoid; }
+  .map { width: 640px !important; height: 400px !important; margin: 0 auto; }
+  .report-credit { break-inside: avoid; }
 }
