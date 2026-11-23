@@ -836,22 +836,34 @@ async function loadEvents() {
           lat: ev.lat,
           lng: ev.lng,
           img: '',
-          dist: distanceKm(start.lat, start.lng, ev.lat, ev.lng),
           note: ev.note,
         }));
     } catch (e) { console.error(e); }
   }
 
+  // 행사마다 코스 선에서 가장 가까운 거리(km)를 재고,
+  // 코스 3km 안 → 없으면 10km → 그래도 없으면 20km까지 넓혀 찾기
+  const dense = densePath();
+  events.forEach((ev) => { ev.dist = nearestOnCourse(dense, ev.lat, ev.lng).gap / 1000; });
+  events.sort((a, b) => a.dist - b.dist);
+  const RADII = [3, 10, 20];
+  const radius = RADII.find((r) => events.some((ev) => ev.dist <= r)) || RADII[RADII.length - 1];
+  events = events.filter((ev) => ev.dist <= radius);
+
   if (isSample) {
     $('eventNote').textContent = '지금은 예시 데이터예요. 한국관광공사 TourAPI 키를 연결하면 실제 행사를 보여 드려요.';
   } else if (!$('eventNote').textContent) {
-    $('eventNote').textContent = `${formatDateKo(p.date)}에 출발 지점 20km 안에서 열리는 행사예요.`;
+    $('eventNote').textContent = radius === RADII[0]
+      ? `${formatDateKo(p.date)}에 코스에서 ${radius}km 안에서 열리는 행사예요.`
+      : `코스 ${RADII[0]}km 안에는 행사가 없어 ${radius}km까지 넓혀 찾았어요.`;
   }
 
   if (events.length === 0) {
-    $('eventList').innerHTML = '<li class="empty-msg">그날 근처에서 열리는 행사가 없어요.</li>';
+    $('eventList').innerHTML = `<li class="empty-msg">그날 코스 ${radius}km 안에서 열리는 행사가 없어요.</li>`;
     return;
   }
+
+  const distText = (km) => (km < 0.1 ? '코스 바로 옆' : `코스에서 ${km < 1 ? `${Math.round(km * 1000)}m` : `${km.toFixed(1)}km`}`);
 
   const fmt = (d) => (d ? `${Number(d.slice(5, 7))}.${Number(d.slice(8, 10))}` : '');
   $('eventList').innerHTML = events.slice(0, 5).map((ev) => `
@@ -859,12 +871,13 @@ async function loadEvents() {
       <span class="event-thumb" ${ev.img ? `style="background-image:url('${esc(ev.img)}')"` : ''} aria-hidden="true"></span>
       <div>
         <p class="event-title">${isSample ? '<span class="tag tag--sample">예시</span>' : ''}${esc(ev.title)}</p>
-        <p class="event-meta">${fmt(ev.start)}${ev.end && ev.end !== ev.start ? ` ~ ${fmt(ev.end)}` : ''} · ${esc(ev.place)} · 출발 지점에서 ${ev.dist.toFixed(1)}km</p>
+        <p class="event-meta">${fmt(ev.start)}${ev.end && ev.end !== ev.start ? ` ~ ${fmt(ev.end)}` : ''} · ${esc(ev.place)} · ${distText(ev.dist)}</p>
         ${ev.note ? `<p class="event-meta">${esc(ev.note)}</p>` : ''}
       </div>
     </li>`).join('');
 
-  const addEventPins = () => events.filter((ev) => ev.dist <= 5).slice(0, 5).forEach((ev, i) => {
+  // 지도에는 코스에서 5km 안 행사만 (멀면 지도 화면 밖이라)
+  const addEventPins = () => events.slice(0, 5).filter((ev) => ev.dist <= 5).forEach((ev, i) => {
     addPin(`event-${i}`, new kakao.maps.LatLng(ev.lat, ev.lng), '', 'pin--event', ev.title);
   });
   state.mapReady.then(addEventPins).catch(() => {});
@@ -907,10 +920,9 @@ async function fetchTourEvents(date, lat, lng) {
       lat: Number(it.mapy),
       lng: Number(it.mapx),
       img: it.firstimage2 || it.firstimage || '',
-      dist: distanceKm(lat, lng, Number(it.mapy), Number(it.mapx)),
     }))
-    .filter((ev) => ev.dist <= 20)
-    .sort((a, b) => a.dist - b.dist);
+    // 코스에서 멀어도 출발점 30km를 넘는 행사는 미리 빼기 (계산량 줄이기)
+    .filter((ev) => distanceKm(lat, lng, ev.lat, ev.lng) <= 30);
 }
 
 // 7. 저장 · 공유 · 칼로리 입력
