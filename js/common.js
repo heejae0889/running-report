@@ -121,7 +121,7 @@ function renderLayout() {
   const footer = document.getElementById('site-footer');
   if (footer) {
     footer.className = 'site-footer';
-    footer.innerHTML = `<div class="container text-center">© 2026 TRIPRUN · AI소프트웨어학부 23팀 웹프로그래밍 팀 프로젝트 · 사진 Unsplash</div>`;
+    footer.innerHTML = `<div class="container text-center">© 2026 TRIPRUN · AI소프트웨어학부 웹프로그래밍 23조 · 사진 Unsplash</div>`;
   }
 }
 
